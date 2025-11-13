@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_ping_pong_test_1/game_view.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:camera/camera.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'camera_module.dart';
+import 'game_view.dart';
 import 'package:path_provider/path_provider.dart';
 
 
@@ -28,7 +30,7 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
   final List<Widget> _pages = [
     const HomePage(),
     TakePictureScreen(camera: cameras.first),
-    const ProfilePage(),
+    const HistoryPage(),
   ];
 
   @override
@@ -61,8 +63,8 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
             label: 'Capture',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: Icon(Icons.history),
+            label: 'Game History',
           ),
         ],
       ),
@@ -79,6 +81,7 @@ class HomePage extends StatelessWidget {
     return const Center(child: Text('Home Page Content'));
   }
 }
+
 
 class CameraPage extends StatefulWidget {
   const CameraPage({super.key});
