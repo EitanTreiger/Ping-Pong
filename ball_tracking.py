@@ -1,8 +1,7 @@
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.interpolate import interp1d
-from scipy.ndimage import uniform_filter1d
+import math
 
 FEET_PER_METER = 3.28084
 
@@ -26,16 +25,20 @@ def smooth_by_distance(frame_numbers, readings, sigma=5):
     return full_frames, smoothed
 
 class Tracker:
-    def __init__(self, focal_length_px, confidence_threshold=0.8):
+    def __init__(self, focal_length_px, image_size, table_points=None, confidence_threshold=0.8):
         self.confidence_threshold = confidence_threshold
         self.focal_length_px = focal_length_px
+        self.table_points = table_points
+        self.image_size = image_size
         self.prev_frame = None
         self.true_ball_diameter = 0.04 # this is in meters
         
         self.frame_index = 0
-        self.recorded_sizes = []
-        self.recorded_distances = []
+        self.recorded_sizes = []        # this really should be an object and not a bunch of lists
+        self.recorded_distances = []    # but I tried refactoring it and got bored so oh well
         self.frame_numbers = []
+        self.recorded_angles = []
+        self.recorded_positions = []
         
     def reset_tracking(self):
         self.prev_frame = None
@@ -43,6 +46,8 @@ class Tracker:
         self.recorded_sizes = []
         self.recorded_distances = []
         self.frame_numbers = []
+        self.recorded_angles = []
+        self.recorded_positions = []
         
     def write_data(self, image, detection, score):
         '''for debugging purposes, annotates an image with detection'''
@@ -133,7 +138,6 @@ class Tracker:
 
         return min(contour_area, ellipse_area) / max(contour_area, ellipse_area)
 
-
     def ellipse_geometric_score(self, cont, ellipse):
         # Lower is better; convert to similarity score later
         (cx, cy), (ax1, ax2), angle = ellipse
@@ -187,9 +191,13 @@ class Tracker:
         
         if score > self.confidence_threshold:
             size = detection[1][0]
+            position = detection[0]
             self.frame_numbers.append(self.frame_index)
             self.recorded_sizes.append(size)
             self.recorded_distances.append(self.calc_distance(size))
+            self.recorded_angles.append(self.calc_angle(position))
+            self.recorded_positions.append(self.calc_position(self.recorded_angles[-1][0], self.recorded_angles[-1][1], self.recorded_distances[-1]))
+            
             
         self.prev_frame = frame
         self.frame_index += 1
@@ -200,6 +208,38 @@ class Tracker:
         '''returns distance to ball in feet'''
         distance_m = self.focal_length_px * 0.04 / observed_size
         return distance_m * FEET_PER_METER
+    
+    def calc_angle(self, target):
+        """
+        Compute the horizontal and vertical angles between the camera forward axis
+        and a pixel location within the image.
+
+        Returns:
+            (horizontal_angle, vertical_angle)
+            in radians
+        """
+
+        # Offset of the pixel relative to optical center
+        offset_x_px = target[0] - self.image_size[0] // 2
+        offset_y_px = target[1] - self.image_size[1] // 2  # this will be off is the principle point is not perfectly centered
+
+        # Convert pixel offsets to angular offsets using pinhole camera geometry
+        horizontal_angle = math.atan(offset_x_px / self.focal_length_px)
+        vertical_angle   = math.atan(offset_y_px / self.focal_length_px)
+
+        return horizontal_angle, vertical_angle
+    
+    def calc_position(self, angle_x, angle_y, distance):
+        dx = math.cos(angle_y) * math.cos(angle_x)
+        dy = math.sin(angle_y)
+        dz = math.cos(angle_y) * math.sin(angle_x)  # tbh idk why this works
+
+        # Scale by distance
+        x = distance * dx
+        y = distance * dy
+        z = distance * dz
+
+        return x, y, z
     
     def smooth_values(self, sigma=10):
         full_frames, smooth_sizes = smooth_by_distance(self.frame_numbers, self.recorded_sizes, sigma=sigma)
