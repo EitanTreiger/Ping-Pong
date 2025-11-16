@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 import math
+from geometry_utils import trilaterate_2d_4points, multilateration_4pts, get_homography
 
 FEET_PER_METER = 3.28084
 
@@ -28,10 +29,23 @@ class Tracker:
     def __init__(self, focal_length_px, image_size, table_points=None, confidence_threshold=0.8):
         self.confidence_threshold = confidence_threshold
         self.focal_length_px = focal_length_px
-        self.table_points = table_points
+        self.table_points = table_points #Now a dictionary
         self.image_size = image_size
         self.prev_frame = None
         self.true_ball_diameter = 0.04 # this is in meters
+
+        # a dictionary using same keys as table_points
+        # (unless list is easier in which case delete below variable if follows rearranged variable format)
+        self.distances_to_cam = None # or whatever it needs to be... from a function maybe
+        self.distances_to_cam_rearranged = self.dictionary_to_arranged_list(self.distances_to_cam) # ordered as top left, top right, bottom right, bottom left. (i.e. clockwise)
+
+        self.H = get_homography(self.dictionary_to_arranged_list(self.table_points))
+        self.corner_locations_mm_2d = self.calc_corners_pos()
+        self.corner_locations_3d = np.array([
+            [pt[0], pt[1], 0.0] for pt in self.corner_locations_mm_2d
+        ])
+        self.camera_pos = multilateration_4pts(self.corner_locations_3d, self.distances_to_cam_rearranged)[0]
+
         
         self.frame_index = 0
         self.recorded_sizes = []        # this really should be an object and not a bunch of lists
@@ -228,22 +242,106 @@ class Tracker:
         vertical_angle   = math.atan(offset_y_px / self.focal_length_px)
 
         return horizontal_angle, vertical_angle
+
+    def dictionary_to_arranged_list(self, dict):
+        # sorts points into correct order
+        arranged = []
+        
+        order = ["TL", "TR", "BR", "BL"]
+        
+        for key in order:
+            arranged.append(dict[key])
+
+        return arranged
+
+    def transform_point(self, H, x, y):
+        # turns points into a numpy array and applies the homography
+        pt = np.array([x, y, 1.0])
+        p2 = H @ pt
+        return p2[0] / p2[2], p2[1] / p2[2]
+
+    def line_through_2points_3d(self, P1, P2):
+        # points get turned into numpy arrays
+        P1 = np.array(P1, dtype=float)
+        P2 = np.array(P2, dtype=float)
+
+        direction = P2 - P1  # vector from P1 to P2
+
+        # parametric function of the line
+        def parametric(t):
+            return P1 + t * direction
+
+        return {
+            'point': P1,
+            'direction': direction,
+            'parametric': parametric
+        }
+
+    def point_along_line_at_distance(self, line, start_point, distance):
+
+        start_point = np.array(start_point, dtype=float)
+        direction = np.array(line['direction'], dtype=float)
+
+        # Normalize direction vector
+        dir_norm = direction / np.linalg.norm(direction)
+
+        # Compute new point
+        new_point = start_point + distance * dir_norm
+        return new_point
+
+    def calc_corners_pos(self):
+        corner_location_pxl = []
+        # applies homography to the table corners to get real worls position in mm
+        order = ["TL", "TR", "BR", "BL"]
+        for key in order:
+            pt = self.table_points[key]
+            tbl_cnr_xy = self.transform_point(self.H, pt[0], pt[1])
+            corner_location_pxl.append(np.array([tbl_cnr_xy[0], tbl_cnr_xy[1]]))
+
+        return corner_location_pxl
     
-    def calc_position(self, angle_x, angle_y, distance):
-        dx = math.cos(angle_y) * math.cos(angle_x)
-        dy = math.sin(angle_y)
-        dz = math.cos(angle_y) * math.sin(angle_x)  # tbh idk why this works
+    # def calc_position(self, angle_x, angle_y, distance):
+    #     dx = math.cos(angle_y) * math.cos(angle_x)
+    #     dy = math.sin(angle_y)
+    #     dz = math.cos(angle_y) * math.sin(angle_x)  # tbh idk why this works
+    # 
+    #     # Scale by distance
+    #     x = distance * dx
+    #     y = distance * dy
+    #     z = distance * dz
+    # 
+    #     return x, y, z
+    def calc_position(self, ball_distance_to_camera, ball_pos_pxl):
 
-        # Scale by distance
-        x = distance * dx
-        y = distance * dy
-        z = distance * dz
+        # ball homography applied
+        bxy = self.transform_point(self.H, ball_pos_pxl[0], ball_pos_pxl[1])
+        ball_xy = np.array([bxy[0], bxy[1]])
 
-        return x, y, z
+        # distance of points to ball in mm
+        corners_to_ball_distances = []
+
+        # getting points location and distances using homograhpy
+        for i in self.corner_locations_mm_2d:
+            dist_px = np.linalg.norm(ball_xy - i)
+            corners_to_ball_distances.append(dist_px)
+
+        # ball position calculated and then turned into 3d with height 0 due to homography shift
+        ball_pos_2d = trilaterate_2d_4points(self.corner_locations_mm_2d, corners_to_ball_distances)
+        ball_pos = np.array([ball_pos_2d[0], ball_pos_2d[1], 0.0])
+
+        # line from the camera to the homography ball position
+        line = self.line_through_2points_3d(self.camera_pos, ball_pos)
+
+        # returns the real 3d position of the ball in mm relative to top left corner (as of editing)
+        return self.point_along_line_at_distance(line, self.camera_pos, ball_distance_to_camera)
     
     def smooth_values(self, sigma=10):
         full_frames, smooth_sizes = smooth_by_distance(self.frame_numbers, self.recorded_sizes, sigma=sigma)
         _, smooth_distances = smooth_by_distance(self.frame_numbers, self.recorded_distances, sigma=sigma)
         return full_frames, smooth_sizes, smooth_distances
+
+    # to be edited
+    def calc_corner_distances(self):
+        return [3, 3, 3, 3]
     
     
