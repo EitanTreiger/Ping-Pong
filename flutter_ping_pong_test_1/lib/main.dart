@@ -4,14 +4,10 @@ import 'package:flutter_ping_pong_test_1/record_module.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:camera/camera.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-//import 'camera_module.dart';
-//import 'game_view.dart';
-//import 'package:path_provider/path_provider.dart';
-//import 'camera_module.dart';
 import 'data_storage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-
-int a = 5;
 List<CameraDescription> cameras = [];
 
 Future<void> main() async {
@@ -32,7 +28,9 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
-    const HomePage(),
+    //GyroscopeExample(),
+    TestAPIPage(),
+    //const HomePage(),
     VideoRecorderScreen(),
     //TakePictureScreen(camera: cameras.first),
     HistoryPage(),
@@ -77,16 +75,78 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
   }
 }
 
+class TestAPIPage extends StatefulWidget {
+  @override
+  _TestAPIState createState() => _TestAPIState();
+}
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class _TestAPIState extends State<TestAPIPage> {
+  String teststr = "Test";
+
+  Future<String> fetchstr() async {
+    final response = await http.get(
+      Uri.parse('https://jsonplaceholder.typicode.com/albums/1'),
+    );
+
+    if (response.statusCode == 200) {
+      return switch (jsonDecode(response.body) as Map<String, dynamic>) {
+        {'userId': int userId, 'id': int id, 'title': String title} => title,
+         _ => throw const FormatException('Failed to load album1.'),
+      };
+    } else {
+      throw Exception('Failed to load album2');
+    }
+  }
 
   @override
+  void initState() {
+    super.initState();
+    other();
+  }
+
+  void other() async {
+    teststr = await fetchstr();
+    setState(() {
+      teststr = teststr;
+    });
+  }
+      
+  @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Home Page Content'));
+    return Scaffold(
+      body: Text(teststr),
+    );
   }
 }
 
+/*
+class GyroscopeExample extends StatefulWidget {
+  @override
+  _GyroscopeExampleState createState() => _GyroscopeExampleState();
+}
+
+class _GyroscopeExampleState extends State<GyroscopeExample> {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: RotationSensor.orientationStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final data = snapshot.data!;
+          //print(data.quaternion);
+          //print(data.rotationMatrix);
+          //print(data.eulerAngles);
+          return Text("${data.quaternion}");
+        } else if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        } else {
+          return const CircularProgressIndicator();
+        }
+      },
+    );
+  }
+}
+*/
 
 class CameraPage extends StatefulWidget {
   const CameraPage({super.key});

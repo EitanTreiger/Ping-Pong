@@ -49,5 +49,7 @@
     <string>This app needs camera access to take videos for analysis.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs camera access to take videos for analysis.</string>
+	<!--<key>NSMotionUsageDescription</key>
+	<string>This app needs gyroscope access to know the camera orientation.</string>-->
 </dict>
 </plist>
