@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ping_pong_test_1/game_view.dart';
+import 'package:flutter_ping_pong_test_1/record_module.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:camera/camera.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'camera_module.dart';
-import 'game_view.dart';
-import 'package:path_provider/path_provider.dart';
+import 'data_storage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
-
-int a = 5;
 List<CameraDescription> cameras = [];
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   cameras = await availableCameras();
+  loadSavedFiles();
   runApp(const MyApp());
 }
 
@@ -28,9 +30,12 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
-    const HomePage(),
-    TakePictureScreen(camera: cameras.first),
-    const HistoryPage(),
+    //GyroscopeExample(),
+    TestAPIPage(),
+    //const HomePage(),
+    VideoRecorderScreen(),
+    //TakePictureScreen(camera: cameras.first),
+    HistoryPage(),
   ];
 
   @override
@@ -60,7 +65,7 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.camera),
-            label: 'Capture',
+            label: 'Record',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
@@ -72,16 +77,114 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
   }
 }
 
+class TestAPIPage extends StatefulWidget {
+  @override
+  _TestAPIState createState() => _TestAPIState();
+}
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class _TestAPIState extends State<TestAPIPage> {
+  static const platform = MethodChannel('lidar_channel');
+  String _lidarStatus = 'LiDAR not started';
+  bool _isRecording = false;
+
+  Future<void> _startLidar() async {
+    try {
+      final bool started = await platform.invokeMethod('startLidar');
+      if (started) {
+        setState(() {
+          _lidarStatus = 'Recording...';
+          _isRecording = true;
+        });
+      } else {
+        setState(() {
+          _lidarStatus = 'Failed to start LiDAR. Is it available?';
+        });
+      }
+    } on PlatformException catch (e) {
+      setState(() {
+        _lidarStatus = "Failed to start LiDAR: '${e.message}'.";
+      });
+    }
+  }
+
+  Future<void> _stopLidar() async {
+    try {
+      final String? path = await platform.invokeMethod('stopLidar');
+      setState(() {
+        _lidarStatus = 'LiDAR not started';
+        _isRecording = false;
+      });
+      if (path != null) {
+        final xfile = XFile(path);
+        await Share.shareXFiles([xfile], text: 'My LiDAR Video');
+      } else {
+        // Handle error or null path
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to get video path.')),
+        );
+      }
+    } on PlatformException catch (e) {
+      setState(() {
+        _lidarStatus = "Failed to stop LiDAR: '${e.message}'.";
+        _isRecording = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Home Page Content'));
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_lidarStatus),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _isRecording ? _stopLidar : _startLidar,
+                child: Text(_isRecording ? 'Stop Recording' : 'Start Recording'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isRecording ? Colors.red : Colors.green,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
+/*
+class GyroscopeExample extends StatefulWidget {
+  @override
+  _GyroscopeExampleState createState() => _GyroscopeExampleState();
+}
+
+class _GyroscopeExampleState extends State<GyroscopeExample> {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: RotationSensor.orientationStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final data = snapshot.data!;
+          //print(data.quaternion);
+          //print(data.rotationMatrix);
+          //print(data.eulerAngles);
+          return Text("${data.quaternion}");
+        } else if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        } else {
+          return const CircularProgressIndicator();
+        }
+      },
+    );
+  }
+}
+*/
 
 class CameraPage extends StatefulWidget {
   const CameraPage({super.key});

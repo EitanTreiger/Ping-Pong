@@ -46,8 +46,10 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-    <string>This app needs camera access to take videos.</string>
+    <string>This app needs camera access to take videos for analysis.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Explanation on why the microphone access is needed.</string>
+	<string>This app needs camera access to take videos for analysis.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>This app needs gyroscope access to know the camera orientation.</string>
 </dict>
 </plist>

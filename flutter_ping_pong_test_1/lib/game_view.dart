@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 //import 'package:path_provider/path_provider.dart';
 //import 'dart:io';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'data_storage.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -11,32 +12,28 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  String length = "Empty";
-
-  void _test() {
-    setState(() {
-      length = "Test";
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Scrollbar(
         thumbVisibility: true,
         child: ListView.builder(
-          itemCount: 25,
-          itemBuilder: (c, i) => FirstRoute(index: i),
+          itemCount: getVideoAmount(),
+          itemBuilder: (c, i) => GameNavigationItem(index: i),
         ),
-      )
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => setState(() => getVideoAmount()),
+        child: Icon(Icons.refresh),
+      ),
     );
   }
 }
 
-InkWell MyItem(int i) {
+/*
+InkWell myItem(int i) {
   return InkWell(
     onTap: () {
-    // Perform actions when the container is tapped
       Fluttertoast.showToast(msg: "Container tapped!");
     },
     child: Container(
@@ -44,94 +41,78 @@ InkWell MyItem(int i) {
       color: const Color.fromARGB(255, 255, 250, 250),
       child: Text('Entry $i')
     ),
-      //onTap: eventview()
   );
 }
+*/
 
-class FirstRoute extends StatefulWidget {
+class GameNavigationItem extends StatefulWidget {
   final int index;
 
-  const FirstRoute({super.key, required this.index});
+  const GameNavigationItem({super.key, required this.index});
 
   @override
-  FirstRouteState createState() => FirstRouteState();
+  GameNavigationItemState createState() => GameNavigationItemState();
 }
 
-class FirstRouteState extends State<FirstRoute> {
+class GameNavigationItemState extends State<GameNavigationItem> {
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-      // Perform actions when the container is tapped
         Fluttertoast.showToast(msg: "Container tapped!");
       },
       child: ElevatedButton(
-          child: Text('${widget.index}'),
+          child: Text('Game ${widget.index}'),
           onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute<void>(
-                builder: (context) => SecondRoute(index: widget.index),
+                builder: (context) => StatisticsPage(index: widget.index),
               ),
             );
           },
         ),
-        /*
-      child: Container(
-        height: 75,
-        color: const Color.fromARGB(255, 255, 250, 250),
-        child: Text('Entry $i')
-      ),
-      */
-      //onTap: eventview()
   );
   }
 }
 
-class SecondRoute extends StatefulWidget {
+class StatisticsPage extends StatefulWidget {
   final int index;
 
-  const SecondRoute({super.key, required this.index});
+  const StatisticsPage({super.key, required this.index});
 
   @override
-  SecondRouteState createState() => SecondRouteState();
+  StatisticsPageState createState() => StatisticsPageState();
 }
 
-class SecondRouteState extends State<SecondRoute> {
+class StatisticsPageState extends State<StatisticsPage> {
   @override
   Widget build(BuildContext context) {
      return Scaffold(
-       appBar: AppBar(title: const Text('Game Stats')),
-       body: Center(
-         child: Text("Test ${widget.index}"),
-         // child: ElevatedButton(
-         //   onPressed: () {
-         //     Navigator.pop(context);
-         //   },
-         //   child: const Text('Go back!'),
-         // ),
+      appBar: AppBar(title: const Text('Game Stats')),
+      body: Container(
+                padding: EdgeInsets.all(20.0),
+                child: Table(
+                  border: TableBorder.all(color: Colors.black),
+                  children: [
+                    TableRow(children: [
+                      Text('STAT'),
+                      Text('Player 1'),
+                      Text('Player 2'),
+                    ]),
+                    TableRow(children: [
+                      Text('Fastest Shot'),
+                      Text('Cell 2'),
+                      Text('Cell 3'),
+                    ]),
+                    TableRow(children: [
+                      Text('Average Shot Speed'),
+                      Text('Cell 5'),
+                      Text('Cell 6'),
+                    ])
+                  ],
+                ),
        ),
      );
   }
 }
-
-
-// class SecondRoute extends StatelessWidget {
-//   const SecondRoute({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: const Text('Second Route')),
-//       body: Center(
-//         child: Text("Test"),
-//         // child: ElevatedButton(
-//         //   onPressed: () {
-//         //     Navigator.pop(context);
-//         //   },
-//         //   child: const Text('Go back!'),
-//         // ),
-//       ),
-//     );
-//   }
-// }
