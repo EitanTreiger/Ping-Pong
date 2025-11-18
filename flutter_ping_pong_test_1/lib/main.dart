@@ -8,6 +8,7 @@ import 'data_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -84,13 +85,15 @@ class TestAPIPage extends StatefulWidget {
 class _TestAPIState extends State<TestAPIPage> {
   static const platform = MethodChannel('lidar_channel');
   String _lidarStatus = 'LiDAR not started';
+  bool _isRecording = false;
 
   Future<void> _startLidar() async {
     try {
       final bool started = await platform.invokeMethod('startLidar');
       if (started) {
         setState(() {
-          _lidarStatus = 'LiDAR capture started';
+          _lidarStatus = 'Recording...';
+          _isRecording = true;
         });
       } else {
         setState(() {
@@ -106,13 +109,24 @@ class _TestAPIState extends State<TestAPIPage> {
 
   Future<void> _stopLidar() async {
     try {
-      await platform.invokeMethod('stopLidar');
+      final String? path = await platform.invokeMethod('stopLidar');
       setState(() {
-        _lidarStatus = 'LiDAR capture stopped';
+        _lidarStatus = 'LiDAR not started';
+        _isRecording = false;
       });
+      if (path != null) {
+        final xfile = XFile(path);
+        await Share.shareXFiles([xfile], text: 'My LiDAR Video');
+      } else {
+        // Handle error or null path
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to get video path.')),
+        );
+      }
     } on PlatformException catch (e) {
       setState(() {
         _lidarStatus = "Failed to stop LiDAR: '${e.message}'.";
+        _isRecording = false;
       });
     }
   }
@@ -121,21 +135,22 @@ class _TestAPIState extends State<TestAPIPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_lidarStatus),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _startLidar,
-              child: const Text('Start LiDAR'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _stopLidar,
-              child: const Text('Stop LiDAR'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_lidarStatus),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _isRecording ? _stopLidar : _startLidar,
+                child: Text(_isRecording ? 'Stop Recording' : 'Start Recording'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isRecording ? Colors.red : Colors.green,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

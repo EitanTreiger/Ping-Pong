@@ -20,18 +20,18 @@ import AVFoundation
             guard let self = self else { return }
             switch call.method {
             case "startLidar":
-                let success = self.lidarController.startCapture()
-                if success {
-                    self.lidarController.onDepthData = { depthImage in
-                        // For now, just confirming data is being received.
-                        // To send this to Flutter, a FlutterEventChannel would be needed.
-                        print("Received depth data")
-                    }
-                }
+                let success = self.lidarController.startRecording()
                 result(success)
             case "stopLidar":
-                self.lidarController.stopCapture()
-                result(nil)
+                self.lidarController.stopRecording { url in
+                    if let url = url {
+                        result(url.path)
+                    } else {
+                        result(FlutterError(code: "LIDAR_ERROR",
+                                            message: "Failed to stop recording or get video URL.",
+                                            details: nil))
+                    }
+                }
             default:
                 result(FlutterMethodNotImplemented)
             }
