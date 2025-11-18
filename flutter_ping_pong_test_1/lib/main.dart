@@ -7,6 +7,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'data_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/services.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -81,40 +82,62 @@ class TestAPIPage extends StatefulWidget {
 }
 
 class _TestAPIState extends State<TestAPIPage> {
-  String teststr = "Test";
+  static const platform = MethodChannel('lidar_channel');
+  String _lidarStatus = 'LiDAR not started';
 
-  Future<String> fetchstr() async {
-    final response = await http.get(
-      Uri.parse('https://jsonplaceholder.typicode.com/albums/1'),
-    );
+  Future<void> _startLidar() async {
+    try {
+      final bool started = await platform.invokeMethod('startLidar');
+      if (started) {
+        setState(() {
+          _lidarStatus = 'LiDAR capture started';
+        });
+      } else {
+        setState(() {
+          _lidarStatus = 'Failed to start LiDAR. Is it available?';
+        });
+      }
+    } on PlatformException catch (e) {
+      setState(() {
+        _lidarStatus = "Failed to start LiDAR: '${e.message}'.";
+      });
+    }
+  }
 
-    if (response.statusCode == 200) {
-      return switch (jsonDecode(response.body) as Map<String, dynamic>) {
-        {'userId': int userId, 'id': int id, 'title': String title} => title,
-         _ => throw const FormatException('Failed to load album1.'),
-      };
-    } else {
-      throw Exception('Failed to load album2');
+  Future<void> _stopLidar() async {
+    try {
+      await platform.invokeMethod('stopLidar');
+      setState(() {
+        _lidarStatus = 'LiDAR capture stopped';
+      });
+    } on PlatformException catch (e) {
+      setState(() {
+        _lidarStatus = "Failed to stop LiDAR: '${e.message}'.";
+      });
     }
   }
 
   @override
-  void initState() {
-    super.initState();
-    other();
-  }
-
-  void other() async {
-    teststr = await fetchstr();
-    setState(() {
-      teststr = teststr;
-    });
-  }
-      
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Text(teststr),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_lidarStatus),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _startLidar,
+              child: const Text('Start LiDAR'),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _stopLidar,
+              child: const Text('Stop LiDAR'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
