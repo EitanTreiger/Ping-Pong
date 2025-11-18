@@ -2,9 +2,10 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 import math
-from geometry_utils import trilaterate_2d_4points, multilateration_4pts, get_homography
+from geometry_utils import trilaterate_2d_4points, multilateration_4pts, get_homography, get_ground_point_full
 
 FEET_PER_METER = 3.28084
+MM_PER_FT = 304.8
 
 def simple_moving_average(data, window_size):
     weights = np.ones(window_size) / window_size
@@ -33,19 +34,6 @@ class Tracker:
         self.image_size = image_size
         self.prev_frame = None
         self.true_ball_diameter = 0.04 # this is in meters
-
-        # a dictionary using same keys as table_points
-        # (unless list is easier in which case delete below variable if follows rearranged variable format)
-        self.distances_to_cam = None # or whatever it needs to be... from a function maybe
-        self.distances_to_cam_rearranged = self.dictionary_to_arranged_list(self.distances_to_cam) # ordered as top left, top right, bottom right, bottom left. (i.e. clockwise)
-
-        self.H = get_homography(self.dictionary_to_arranged_list(self.table_points))
-        self.corner_locations_mm_2d = self.calc_corners_pos()
-        self.corner_locations_3d = np.array([
-            [pt[0], pt[1], 0.0] for pt in self.corner_locations_mm_2d
-        ])
-        self.camera_pos = multilateration_4pts(self.corner_locations_3d, self.distances_to_cam_rearranged)[0]
-
         
         self.frame_index = 0
         self.recorded_sizes = []        # this really should be an object and not a bunch of lists
@@ -53,6 +41,18 @@ class Tracker:
         self.frame_numbers = []
         self.recorded_angles = []
         self.recorded_positions = []
+        
+    def set_distances(self):
+        self.distances_to_cam = self.calc_corner_distances() # or whatever it needs to be... from a function maybe
+        if self.distances_to_cam is not None:
+            self.distances_to_cam_rearranged = self.dictionary_to_arranged_list(self.distances_to_cam) # ordered as top left, top right, bottom right, bottom left. (i.e. clockwise)
+
+            self.H = get_homography(self.dictionary_to_arranged_list(self.table_points))
+            self.corner_locations_mm_2d = self.calc_corners_pos()
+            self.corner_locations_3d = np.array([
+                [pt[0], pt[1], 0.0] for pt in self.corner_locations_mm_2d
+            ])
+            self.camera_pos = multilateration_4pts(self.corner_locations_3d, self.distances_to_cam_rearranged)[0]
         
     def reset_tracking(self):
         self.prev_frame = None
@@ -62,6 +62,16 @@ class Tracker:
         self.frame_numbers = []
         self.recorded_angles = []
         self.recorded_positions = []
+        
+    def corner_calibration(self, no_ball, front_ball, back_ball):
+        tracker = Tracker(self.focal_length_px, self.image_size, None)
+        tracker.track(no_ball, calc_position=False)
+        tracker.track(front_ball, calc_position=False)
+        front_ball_dist = tracker.recorded_distances[-1] * MM_PER_FT
+        tracker.track(no_ball, calc_position=False)
+        tracker.track(back_ball, calc_position=False)
+        back_ball_dist = tracker.recorded_distances[-1] * MM_PER_FT
+        self.corner_distances = {"TL" : back_ball_dist, "TR" : back_ball_dist, "BL" : front_ball_dist, "BR" : front_ball_dist}
         
     def write_data(self, image, detection, score):
         '''for debugging purposes, annotates an image with detection'''
@@ -193,7 +203,7 @@ class Tracker:
         
         return threshold_arr
     
-    def track(self, frame):
+    def track(self, frame, calc_position=True):
         '''automatically updates previous frame (be careful with that), also updates sizes, distances, frame_numbers'''
         if self.prev_frame is None:
             self.prev_frame = frame
@@ -210,7 +220,9 @@ class Tracker:
             self.recorded_sizes.append(size)
             self.recorded_distances.append(self.calc_distance(size))
             self.recorded_angles.append(self.calc_angle(position))
-            self.recorded_positions.append(self.calc_position(self.recorded_angles[-1][0], self.recorded_angles[-1][1], self.recorded_distances[-1]))
+            if calc_position:
+                # self.recorded_positions.append(self.calc_position(self.recorded_angles[-1][0], self.recorded_angles[-1][1], self.recorded_distances[-1]))
+                self.recorded_positions.append(self.calc_position(self.recorded_distances[-1], position))
             
             
         self.prev_frame = frame
@@ -241,7 +253,7 @@ class Tracker:
         horizontal_angle = math.atan(offset_x_px / self.focal_length_px)
         vertical_angle   = math.atan(offset_y_px / self.focal_length_px)
 
-        return horizontal_angle, vertical_angle
+        return horizontal_angle, vertical_angle * -1 # yet unclear why the -1 is needed
 
     def dictionary_to_arranged_list(self, dict):
         # sorts points into correct order
@@ -252,7 +264,7 @@ class Tracker:
         for key in order:
             arranged.append(dict[key])
 
-        return arranged
+        return np.array(arranged)
 
     def transform_point(self, H, x, y):
         # turns points into a numpy array and applies the homography
@@ -300,17 +312,18 @@ class Tracker:
 
         return corner_location_pxl
     
-    # def calc_position(self, angle_x, angle_y, distance):
-    #     dx = math.cos(angle_y) * math.cos(angle_x)
-    #     dy = math.sin(angle_y)
-    #     dz = math.cos(angle_y) * math.sin(angle_x)  # tbh idk why this works
-    # 
-    #     # Scale by distance
-    #     x = distance * dx
-    #     y = distance * dy
-    #     z = distance * dz
-    # 
-    #     return x, y, z
+    def calc_position(self, angle_x, angle_y, distance):
+        dx = math.cos(angle_y) * math.cos(angle_x)
+        dy = math.sin(angle_y)
+        dz = math.cos(angle_y) * math.sin(angle_x)  # tbh idk why this works
+    
+        # Scale by distance
+        x = distance * dx
+        y = distance * dy
+        z = distance * dz
+    
+        return x, y, z
+    
     def calc_position(self, ball_distance_to_camera, ball_pos_pxl):
 
         # ball homography applied
@@ -340,8 +353,9 @@ class Tracker:
         _, smooth_distances = smooth_by_distance(self.frame_numbers, self.recorded_distances, sigma=sigma)
         return full_frames, smooth_sizes, smooth_distances
 
-    # to be edited
     def calc_corner_distances(self):
-        return [3, 3, 3, 3]
+        if self.corner_distances is None:
+            raise Exception("Corner calibration not performed before attempting to access corner distances")
+        return self.corner_distances
     
     
