@@ -118,6 +118,8 @@ class StatisticsPageState extends State<StatisticsPage> with SingleTickerProvide
       duration: Duration(milliseconds: (n * 1000).round()),
     )..repeat(reverse: false);
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
+
+    print("Duration: ${(n * 1000).round()} ms");
     setState(() {
       _isControllerInit = true;
     });
@@ -171,7 +173,9 @@ class StatisticsPageState extends State<StatisticsPage> with SingleTickerProvide
               animation: _animation,
               builder: (context, child) {
                 return CustomPaint(
-                  painter: LinePainter(_animation.value),
+                  painter: BallAnimPainter(_animation.value, decodedJson, 
+                    decodedJson.map((bounceData) => (bounceData["frame_number"] as int)).toList(), 
+                    decodedJson[decodedJson.length - 1]["frame_number"]),
                   child: Container(),
                 );
               },
@@ -183,10 +187,13 @@ class StatisticsPageState extends State<StatisticsPage> with SingleTickerProvide
   }
 }
 
-class LinePainter extends CustomPainter {
+class BallAnimPainter extends CustomPainter {
   final double position;
+  final List decodedJson;
+  final List<int> bounceFrames;
+  final int finalFrame;
 
-  LinePainter(this.position);
+  BallAnimPainter(this.position, this.decodedJson, this.bounceFrames, this.finalFrame);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -233,8 +240,12 @@ class LinePainter extends CustomPainter {
       ..color = Color.fromARGB(255, 225, 120, 35)
       ..strokeWidth = 5.0;
 
-    final X = tableWidth * position + tableLeft;
-    final Y = tableTop + tableHeight / 2;
+    print("Here4");
+    List<int> xy = findBallXY(finalFrame * position, decodedJson, bounceFrames);
+    final X = tableWidth/tableWidthRatio * xy[0] + tableLeft;
+    final Y = tableHeight/tableHeightRatio * xy[1] + tableTop;
+
+    print("$X, $Y");
 
     canvas.drawCircle(Offset(X, Y), 5, ballPaint);
   }
@@ -243,6 +254,44 @@ class LinePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return true;
   }
+}
+
+List<int> findBallXY(double timestamp, decodedJson, bounceFrames) {
+  int afterFrame = 0;
+  print(timestamp);
+  print(bounceFrames);
+  for (int i = 0; i < bounceFrames.length; i++) {
+    if (bounceFrames[i] >= timestamp) {
+      afterFrame = i;
+      break;
+    }
+  }
+  print("afterframe: $afterFrame");
+
+  if (afterFrame == 0) {
+    return [0, 0];
+  }
+
+  int prevFrame = afterFrame - 1;
+  int prevFrameTime = bounceFrames[prevFrame];
+  int frameAfterTime = bounceFrames[afterFrame];
+  int frameTimeDiff = (frameAfterTime - prevFrameTime).abs();
+
+  print("now");
+  print(decodedJson[prevFrame].keys.toList());
+  List posPrevFrame = decodedJson[prevFrame]["pos"]; // For some reason, this does not run even when prior lines run. To look into
+  print("test");
+  List<int> posAfterFrame = decodedJson[afterFrame]["pos"];
+  print("Down ere");
+
+  double interpTime = timestamp - prevFrameTime;
+  int x = lerp(posPrevFrame[0], posAfterFrame[0], interpTime/frameTimeDiff).round();
+  int y = lerp(posPrevFrame[1], posAfterFrame[1], interpTime/frameTimeDiff).round();
+  return [x, y];
+}
+
+double lerp(int a, int b, double t) {
+  return a + (b - a) * t;
 }
 
 Future<String> readJsonFile(String filePath) async {
