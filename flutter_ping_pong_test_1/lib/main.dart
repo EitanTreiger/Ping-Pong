@@ -98,7 +98,7 @@ class HomePage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Home Page Content'),
+          //Text('Home Page Content'),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -125,7 +125,7 @@ class MyApp extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return MaterialApp(
-      //debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false,
       title: 'Ping Pong',
       theme: ThemeData(
         brightness: Brightness.light,

@@ -278,10 +278,9 @@ List<int> findBallXY(double timestamp, decodedJson, bounceFrames) {
   int frameAfterTime = bounceFrames[afterFrame];
 
   Map<String, dynamic> prevFrameMap = decodedJson[prevFrame];
-  List posPrevFrame = prevFrameMap["pos"]; // For some reason, this does not run even when prior lines run. To look into
+  List posPrevFrame = prevFrameMap["pos"];
   Map<String, dynamic> afterFrameMap = decodedJson[afterFrame];
   List posAfterFrame = afterFrameMap["pos"];
-  //print("Down ere");
 
   double interpTime = timestamp - prevFrameTime;
   int frameTimeDiff = (frameAfterTime - prevFrameTime).abs();
