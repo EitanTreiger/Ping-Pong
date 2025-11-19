@@ -60,3 +60,7 @@ int getAnalysisAmount() {
 
   return analysisFileList.length;
 }
+
+FileSystemEntity getAnalysisbyIndex(int x) {
+  return analysisFileList[x];
+}

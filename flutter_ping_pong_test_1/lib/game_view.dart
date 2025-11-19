@@ -15,10 +15,10 @@ class _HistoryPageState extends State<HistoryPage> {
   void initState() {
     super.initState();
     setState(() {
-      getVideoAmount();
+      getAnalysisAmount();
     });
     Timer(const Duration(milliseconds: 1500), () => setState(() {
-      getVideoAmount();
+      getAnalysisAmount();
     }));
   }
 
@@ -28,12 +28,12 @@ class _HistoryPageState extends State<HistoryPage> {
       body: Scrollbar(
         thumbVisibility: true,
         child: ListView.builder(
-          itemCount: getVideoAmount(),
+          itemCount: getAnalysisAmount(),
           itemBuilder: (c, i) => GameNavigationItem(index: i),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => setState(() => getVideoAmount()),
+        onPressed: () => setState(() => getAnalysisAmount()),
         child: Icon(Icons.refresh),
       ),  
     );
