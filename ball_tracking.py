@@ -3,6 +3,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 import math
 from geometry_utils import trilaterate_2d_4points, multilateration_4pts, get_homography, get_ground_point_full
+from bounce_detection import find_robust_peaks
+
 
 FEET_PER_METER = 3.28084
 MM_PER_FT = 304.8
@@ -41,18 +43,21 @@ class Tracker:
         self.frame_numbers = []
         self.recorded_angles = []
         self.recorded_positions = []
+        self.recorded_positions2d = []
         
     def set_distances(self):
         self.distances_to_cam = self.calc_corner_distances() # or whatever it needs to be... from a function maybe
         if self.distances_to_cam is not None:
             self.distances_to_cam_rearranged = self.dictionary_to_arranged_list(self.distances_to_cam) # ordered as top left, top right, bottom right, bottom left. (i.e. clockwise)
-
-            self.H = get_homography(self.dictionary_to_arranged_list(self.table_points))
             self.corner_locations_mm_2d = self.calc_corners_pos()
             self.corner_locations_3d = np.array([
                 [pt[0], pt[1], 0.0] for pt in self.corner_locations_mm_2d
             ])
             self.camera_pos = multilateration_4pts(self.corner_locations_3d, self.distances_to_cam_rearranged)[0]
+        
+    def set_table_points(self, table_points):
+        self.table_points = table_points
+        self.H = get_homography(self.dictionary_to_arranged_list(self.table_points))
         
     def reset_tracking(self):
         self.prev_frame = None
@@ -62,6 +67,7 @@ class Tracker:
         self.frame_numbers = []
         self.recorded_angles = []
         self.recorded_positions = []
+        self.recorded_positions2d = []
         
     def corner_calibration(self, no_ball, front_ball, back_ball):
         tracker = Tracker(self.focal_length_px, self.image_size, None)
@@ -216,6 +222,7 @@ class Tracker:
         if score > self.confidence_threshold:
             size = detection[1][0]
             position = detection[0]
+            self.recorded_positions2d.append((position[0], self.image_size[1] - position[1]))
             self.frame_numbers.append(self.frame_index)
             self.recorded_sizes.append(size)
             self.recorded_distances.append(self.calc_distance(size))
@@ -347,7 +354,7 @@ class Tracker:
 
         # returns the real 3d position of the ball in mm relative to top left corner (as of editing)
         return self.point_along_line_at_distance(line, self.camera_pos, ball_distance_to_camera)
-    
+        
     def smooth_values(self, sigma=10):
         full_frames, smooth_sizes = smooth_by_distance(self.frame_numbers, self.recorded_sizes, sigma=sigma)
         _, smooth_distances = smooth_by_distance(self.frame_numbers, self.recorded_distances, sigma=sigma)
@@ -358,4 +365,19 @@ class Tracker:
             raise Exception("Corner calibration not performed before attempting to access corner distances")
         return self.corner_distances
     
+    def is_net_hit(self, x_pos):
+        if abs(x_pos - 1369.5) < 300:
+            return True
     
+    def detect_events(self):
+        positions_x = [pos[0] for pos in self.recorded_positions2d]
+        positions_y = [pos[1] for pos in self.recorded_positions2d]
+        
+        hit_indices, x_smoothed, hit_properties = find_robust_peaks(positions_x, smooth_window_size=7, prominence=30, distance=10, peak_type='both')
+        bounce_indices, y_smoothed, bounce_properties = find_robust_peaks(positions_y, smooth_window_size=7, prominence=20, distance=10, peak_type='min')
+        
+        bounce_indices = [b_index for b_index in bounce_indices if min([b_index - h_index for h_index in hit_indices]) > 10]
+        is_net = [self.is_net_hit(x_smoothed[index]) for index in hit_indices]
+        net_indices = [index for i, index in enumerate(hit_indices) if is_net[i]]
+        hit_indices = [index for i, index in enumerate(hit_indices) if not is_net[i]]
+        return {"hit_indices" : hit_indices, "bounce_indices" : bounce_indices, "net_indices" : net_indices}

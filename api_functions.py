@@ -15,7 +15,7 @@ tracker = Tracker(focal_length_px=2000, image_size=(4000, 3000), table_points=No
 def update_corners():
     data = request.get_json()
     corners = data['corners']  # put these in order
-    tracker.table_points = corners
+    tracker.set_table_points(corners)
     
 @app.post("/output_positions")
 def output_position_data():
@@ -36,3 +36,20 @@ def process_tracking():
     img_np = np.array(img)
 
     tracker.track(img_np)
+    
+@app.post("/process_image")   
+def corner_points_to_dict(self, corner_points):
+    sorted_by_y = corner_points[np.argsort(corner_points[:, 1])]
+    
+    top = sorted_by_y[:2]
+    bottom = sorted_by_y[2:]
+
+    top_left, top_right = top[np.argsort(top[:, 0])]
+    bottom_left, bottom_right = bottom[np.argsort(bottom[:, 0])]
+
+    return {"TL": top_left, "TR": top_right, "BR": bottom_left, "BL": bottom_right}
+
+
+@app.route("/hello")
+def hello():
+    return {"message": "hello Pierre"}
