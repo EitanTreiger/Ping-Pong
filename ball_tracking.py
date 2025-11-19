@@ -44,6 +44,7 @@ class Tracker:
         self.recorded_angles = []
         self.recorded_positions = []
         self.recorded_positions2d = []
+        self.recorded_table_positions = []
         
     def set_distances(self):
         self.distances_to_cam = self.calc_corner_distances() # or whatever it needs to be... from a function maybe
@@ -59,6 +60,9 @@ class Tracker:
         self.table_points = table_points
         self.H = get_homography(self.dictionary_to_arranged_list(self.table_points))
         
+    def calc_table_position(self, screen_position):
+        return self.transform_point(self.H, screen_position[0], screen_position[1])
+        
     def reset_tracking(self):
         self.prev_frame = None
         self.frame_index = 0
@@ -68,6 +72,7 @@ class Tracker:
         self.recorded_angles = []
         self.recorded_positions = []
         self.recorded_positions2d = []
+        self.recorded_table_positions = []
         
     def corner_calibration(self, no_ball, front_ball, back_ball):
         tracker = Tracker(self.focal_length_px, self.image_size, None)
@@ -227,6 +232,7 @@ class Tracker:
             self.recorded_sizes.append(size)
             self.recorded_distances.append(self.calc_distance(size))
             self.recorded_angles.append(self.calc_angle(position))
+            self.recorded_table_positions.append(self.calc_table_position(position))
             if calc_position:
                 # self.recorded_positions.append(self.calc_position(self.recorded_angles[-1][0], self.recorded_angles[-1][1], self.recorded_distances[-1]))
                 self.recorded_positions.append(self.calc_position(self.recorded_distances[-1], position))
@@ -382,12 +388,13 @@ class Tracker:
         positions_y = [pos[1] for pos in self.recorded_positions2d]
         
         hit_indices, x_smoothed, hit_properties = find_robust_peaks(positions_x, smooth_window_size=7, prominence=30, distance=10, peak_type='both')
+        hit_indices = hit_indices['minima'] + hit_indices['maxima']
+        
         bounce_indices, y_smoothed, bounce_properties = find_robust_peaks(positions_y, smooth_window_size=7, prominence=20, distance=10, peak_type='min')
         
         bounce_indices = [b_index for b_index in bounce_indices if min([b_index - h_index for h_index in hit_indices]) > 10]
-        is_net = [self.is_net_hit(x_smoothed[index]) for index in hit_indices]
+        is_net = [self.is_net_hit(positions_x[index]) for index in hit_indices]
         net_indices = [index for i, index in enumerate(hit_indices) if is_net[i]]
         hit_indices = [index for i, index in enumerate(hit_indices) if not is_net[i]]
-        
         
         return {"hit_indices" : hit_indices, "bounce_indices" : bounce_indices, "net_indices" : net_indices}
