@@ -240,14 +240,17 @@ class BallAnimPainter extends CustomPainter {
       ..color = Color.fromARGB(255, 225, 120, 35)
       ..strokeWidth = 5.0;
 
-    print("Here4");
     List<int> xy = findBallXY(finalFrame * position, decodedJson, bounceFrames);
+    print(xy);
+
     final X = tableWidth/tableWidthRatio * xy[0] + tableLeft;
     final Y = tableHeight/tableHeightRatio * xy[1] + tableTop;
 
     print("$X, $Y");
+    print("${size.width}, ${size.height}");
 
     canvas.drawCircle(Offset(X, Y), 5, ballPaint);
+    print("circle printed");
   }
 
   @override
@@ -258,15 +261,13 @@ class BallAnimPainter extends CustomPainter {
 
 List<int> findBallXY(double timestamp, decodedJson, bounceFrames) {
   int afterFrame = 0;
-  print(timestamp);
-  print(bounceFrames);
+  //print(timestamp);
   for (int i = 0; i < bounceFrames.length; i++) {
     if (bounceFrames[i] >= timestamp) {
       afterFrame = i;
       break;
     }
   }
-  print("afterframe: $afterFrame");
 
   if (afterFrame == 0) {
     return [0, 0];
@@ -275,16 +276,15 @@ List<int> findBallXY(double timestamp, decodedJson, bounceFrames) {
   int prevFrame = afterFrame - 1;
   int prevFrameTime = bounceFrames[prevFrame];
   int frameAfterTime = bounceFrames[afterFrame];
-  int frameTimeDiff = (frameAfterTime - prevFrameTime).abs();
 
-  print("now");
-  print(decodedJson[prevFrame].keys.toList());
-  List posPrevFrame = decodedJson[prevFrame]["pos"]; // For some reason, this does not run even when prior lines run. To look into
-  print("test");
-  List<int> posAfterFrame = decodedJson[afterFrame]["pos"];
-  print("Down ere");
+  Map<String, dynamic> prevFrameMap = decodedJson[prevFrame];
+  List posPrevFrame = prevFrameMap["pos"]; // For some reason, this does not run even when prior lines run. To look into
+  Map<String, dynamic> afterFrameMap = decodedJson[afterFrame];
+  List posAfterFrame = afterFrameMap["pos"];
+  //print("Down ere");
 
   double interpTime = timestamp - prevFrameTime;
+  int frameTimeDiff = (frameAfterTime - prevFrameTime).abs();
   int x = lerp(posPrevFrame[0], posAfterFrame[0], interpTime/frameTimeDiff).round();
   int y = lerp(posPrevFrame[1], posAfterFrame[1], interpTime/frameTimeDiff).round();
   return [x, y];
