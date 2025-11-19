@@ -2,7 +2,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 //import 'package:flutter_rotation_sensor/flutter_rotation_sensor.dart';
-import 'package:share_plus/share_plus.dart';
+//import 'package:share_plus/share_plus.dart';
 
 class VideoRecorderScreen extends StatefulWidget {
   const VideoRecorderScreen({super.key});
@@ -63,11 +63,11 @@ class VideoRecorderScreenState extends State<VideoRecorderScreen> {
       _isRecording = false;
     });
 
-    await SharePlus.instance.share(
+    /*await SharePlus.instance.share(
       ShareParams(
       text: 'Great video',
       files: [videoFile],
-    ));
+    ));*/
     //print('${videoFile.path}');
   }
 
@@ -84,10 +84,8 @@ class VideoRecorderScreenState extends State<VideoRecorderScreen> {
 
     var x = details.localPosition.dx;
     var y = details.localPosition.dy;
-    //print("Tap down $x, $y.");
 
     if (coordlist.length < 4) {
-
       coordlist.add([x, y]);
       addPoint(x, y);
     }
@@ -158,7 +156,6 @@ class VideoRecorderScreenState extends State<VideoRecorderScreen> {
 
                   FloatingActionButton(
                     onPressed: () {
-                      print('Second button pressed');
                       if (_isRecording) {
                         editing = false;
                         return;

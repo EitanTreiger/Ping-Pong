@@ -110,17 +110,17 @@ Future<void> requestCameraPermission() async {
   var status = await Permission.camera.status;
 
   if (status.isGranted) {
-    Fluttertoast.showToast(msg: 'Already permission granted');
+    //Fluttertoast.showToast(msg: 'Already permission granted');
   } else if (status.isDenied) {
     var result = await Permission.camera.request();
 
     if (result.isGranted) {
-      Fluttertoast.showToast(msg: 'Permission now granted');
+      //Fluttertoast.showToast(msg: 'Permission now granted');
     } else {
-      Fluttertoast.showToast(msg: 'Permission Denied');
+      Fluttertoast.showToast(msg: 'Camera Permission Denied');
     }
   } else if (status.isPermanentlyDenied) {
-    Fluttertoast.showToast(msg: 'Permission permanently denied');
+    Fluttertoast.showToast(msg: 'Camera Permission Denied');
     openAppSettings();
   }
 }
