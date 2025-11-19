@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ping_pong_test_1/game_view.dart';
 import 'package:flutter_ping_pong_test_1/record_module.dart';
+import 'package:flutter_ping_pong_test_1/theme_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:camera/camera.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:provider/provider.dart';
 
 import 'data_storage.dart';
 //import 'package:http/http.dart' as http;
@@ -17,7 +19,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   cameras = await availableCameras();
   loadSavedFiles();
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ThemeProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyBottomNavBarScreen extends StatefulWidget {
@@ -85,7 +92,28 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Home Page Content'));
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Home Page Content'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Dark Mode'),
+              Switch(
+                value: themeProvider.themeMode == ThemeMode.dark,
+                onChanged: (value) {
+                  themeProvider.toggleTheme(value);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -94,12 +122,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MaterialApp(
       //debugShowCheckedModeBanner: false,
       title: 'Ping Pong',
       theme: ThemeData(
+        brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 0, 0, 0)),
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+      ),
+      themeMode: themeProvider.themeMode,
       home: const MyBottomNavBarScreen(),
     );
   }
