@@ -292,7 +292,9 @@ class Tracker:
         # turns points into a numpy array and applies the homography
         pt = np.array([x, y, 1.0])
         p2 = H @ pt
-        return p2[0] / p2[2], p2[1] / p2[2]
+        pts = (p2[0] / p2[2], p2[1] / p2[2])
+        print("(", pts[0], ",", pts[1], ")")
+        return pts
 
     def line_through_2points_3d(self, P1, P2):
         # points get turned into numpy arrays
@@ -405,7 +407,6 @@ class Tracker:
         event_data['velocities'] = self.calc_velo(event_data)
         return event_data
 
-
     def calc_velo(self, dictionary_of_events):
         hit_indices = dictionary_of_events['hit_indices']
         positions_x = [pos[0] for pos in self.recorded_positions2d][::-1]
@@ -414,7 +415,7 @@ class Tracker:
 
         frame_numbers_rev = self.frame_numbers[::-1]
 
-        framerate = 60
+        framerate = 120
 
         net_x = 1369.5
 
@@ -422,30 +423,43 @@ class Tracker:
 
         velocities = []
 
+        print(hit_indices)
+        print(positions_x)
+        print(positions_y)
+        # print(frame_numbers_rev)
+
         for i in bounces:
             bounce_x = positions_x[i]
             bounce_y = positions_y[i]
             frame_at_bounce = frame_numbers_rev[i]
 
-            for j in range(i+1, len(positions_y)):
+            for j in range(i + 1, len(positions_y)):
+                print(i, j, positions_x[j], positions_y[j])
                 if j not in hit_indices:
+                    print("positions", positions_x[j], positions_x[j - 1],
+                          (positions_x[j] >= 1369.5 and positions_x[j - 1] <= 1369.5),
+                          (positions_x[j] <= 1369.5 and positions_x[j - 1] >= 1369.5))
+                    if ((positions_x[j] >= 1369.5 and positions_x[j - 1] <= 1369.5) or
+                            (positions_x[j] <= 1369.5 and positions_x[j - 1] >= 1369.5)):
+                        print("this should be working")
+                        frame_at_net = frame_numbers_rev[j] + 0.5
 
-                    if (positions_x[j] >= 1369.5 and positions_x[j-1] <= 1369.5) or (positions_x[j] <= 1369.5 and positions_x[j-1] >= 1369.5):
+                        net_y = (positions_y[j] + positions_y[j - 1]) / 2
 
-                        frame_at_net = frame_numbers_rev[j]+0.5
-
-                        net_y = (positions_y[j]+positions_y[j-1])/2
-
-
-                        velocity = (((bounce_x-net_x)**2 + (bounce_y-net_y)**2)**0.5)/(abs(frame_at_bounce-frame_at_net))*framerate
+                        velocity = (((bounce_x - net_x) ** 2 + (bounce_y - net_y) ** 2) ** 0.5) / (
+                            abs(frame_at_bounce - frame_at_net)) * framerate
                         velocities.append(velocity)
                         break
 
+                    elif ((positions_x[j] > 1369.5 and positions_x[j - 1] > 1369.5) or
+                          (positions_x[j] < 1369.5 and positions_x[j - 1] < 1369.5)):
+                        pass
                     else:
+                        print("weird")
                         velocities.append(None)
-                        break
 
         velocities = velocities[::-1]
+        print(velocities)
         return velocities
 
 
