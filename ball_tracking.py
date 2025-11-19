@@ -242,6 +242,14 @@ class Tracker:
         distance_m = self.focal_length_px * 0.04 / observed_size
         return distance_m * FEET_PER_METER
     
+    def calc_position_2d(self, ball_location):
+        table_corners_to_ball = []
+        for i in self.corner_locations_mm_2d:
+            dist_px = np.linalg.norm(ball_location - i)
+            table_corners_to_ball.append(dist_px)
+
+        return trilaterate_2d_4points(self.corner_locations_mm_2d, table_corners_to_ball)
+        
     def calc_angle(self, target):
         """
         Compute the horizontal and vertical angles between the camera forward axis
@@ -380,4 +388,6 @@ class Tracker:
         is_net = [self.is_net_hit(x_smoothed[index]) for index in hit_indices]
         net_indices = [index for i, index in enumerate(hit_indices) if is_net[i]]
         hit_indices = [index for i, index in enumerate(hit_indices) if not is_net[i]]
+        
+        
         return {"hit_indices" : hit_indices, "bounce_indices" : bounce_indices, "net_indices" : net_indices}
