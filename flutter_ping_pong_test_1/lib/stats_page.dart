@@ -111,15 +111,16 @@ class StatisticsPageState extends State<StatisticsPage> with SingleTickerProvide
   void doasyncstuff(FileSystemEntity gameStats) async {
     jsonstr = await readJsonFile(gameStats.path);
     decodedJson = jsonDecode(jsonstr);
-    double n = decodedJson[decodedJson.length - 1]["frame_number"] / 30;
+    double startFrame = decodedJson[0]["frame_number"] / 30;
+    double endFrame = decodedJson[decodedJson.length - 1]["frame_number"] / 30;
     print(decodedJson);
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: (n * 1000).round()),
+      duration: Duration(milliseconds: ((endFrame - startFrame) * 1000).round()),
     )..repeat(reverse: false);
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
 
-    print("Duration: ${(n * 1000).round()} ms");
+    print("Duration: ${(endFrame * 1000).round()} ms");
     setState(() {
       _isControllerInit = true;
     });
@@ -175,7 +176,8 @@ class StatisticsPageState extends State<StatisticsPage> with SingleTickerProvide
                 return CustomPaint(
                   painter: BallAnimPainter(_animation.value, decodedJson, 
                     decodedJson.map((bounceData) => (bounceData["frame_number"] as int)).toList(), 
-                    decodedJson[decodedJson.length - 1]["frame_number"]),
+                    decodedJson[decodedJson.length - 1]["frame_number"], 
+                    decodedJson[0]["frame_number"]),
                   child: Container(),
                 );
               },
@@ -192,8 +194,9 @@ class BallAnimPainter extends CustomPainter {
   final List decodedJson;
   final List<int> bounceFrames;
   final int finalFrame;
+  final int startFrame;
 
-  BallAnimPainter(this.position, this.decodedJson, this.bounceFrames, this.finalFrame);
+  BallAnimPainter(this.position, this.decodedJson, this.bounceFrames, this.finalFrame, this.startFrame);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -240,17 +243,18 @@ class BallAnimPainter extends CustomPainter {
       ..color = Color.fromARGB(255, 225, 120, 35)
       ..strokeWidth = 5.0;
 
-    List<int> xy = findBallXY(finalFrame * position, decodedJson, bounceFrames);
-    print(xy);
+    //List<int> xy = findBallXY(finalFrame * position, decodedJson, bounceFrames);
+    List<int> xy = findBallXY((finalFrame - startFrame) * position + startFrame, decodedJson, bounceFrames);
+    //print(xy);
 
     final X = tableWidth/tableWidthRatio * xy[0] + tableLeft;
     final Y = tableHeight/tableHeightRatio * xy[1] + tableTop;
 
-    print("$X, $Y");
-    print("${size.width}, ${size.height}");
+    //print("$X, $Y");
+    //print("${size.width}, ${size.height}");
 
     canvas.drawCircle(Offset(X, Y), 5, ballPaint);
-    print("circle printed");
+    //print("circle printed");
   }
 
   @override
@@ -270,7 +274,7 @@ List<int> findBallXY(double timestamp, decodedJson, bounceFrames) {
   }
 
   if (afterFrame == 0) {
-    return [0, 0];
+    return [10, 10];
   }
 
   int prevFrame = afterFrame - 1;
