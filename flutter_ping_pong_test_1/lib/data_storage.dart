@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-List directoryFileList = [];
+List videoFileList = [];
 
 Future<String> get _localPath async {
   await Permission.storage.request().isGranted;
@@ -23,17 +23,40 @@ Future<void> loadSavedFiles() async {
   final mediaFiles = await directory.list().where((e) => e is File).toList();
   //print(mediaFiles);
 
-  directoryFileList = mediaFiles;
+  videoFileList = mediaFiles;
   //print("Length");
   //print(directoryFileList.length);
 }
 
 int getVideoAmount() {
-  if (directoryFileList.isEmpty) {
+  if (videoFileList.isEmpty) {
     loadSavedFiles();
     //print("Empty");
   }
 
   //print("Got Video Amount");
-  return directoryFileList.length;
+  return videoFileList.length;
+}
+
+List analysisFileList = [];
+
+Future<void> loadSavedAnalysisFiles() async {
+  final directoryPath = await _localPath;
+  final directory = Directory("$directoryPath/analysis");
+  
+  if (!await directory.exists()) {
+    return;
+  }
+
+  final analysisFiles = await directory.list().where((e) => e is File).toList();
+
+  analysisFileList = analysisFiles;
+}
+
+int getAnalysisAmount() {
+  if (analysisFileList.isEmpty) {
+    loadSavedAnalysisFiles();
+  }
+
+  return analysisFileList.length;
 }

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-//import 'package:path_provider/path_provider.dart';
-//import 'dart:io';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'data_storage.dart';
+import 'dart:async';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -12,6 +11,17 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
+  @override
+  void initState() {
+    super.initState();
+    setState(() {
+      getVideoAmount();
+    });
+    Timer(const Duration(milliseconds: 1500), () => setState(() {
+      getVideoAmount();
+    }));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,7 +35,7 @@ class _HistoryPageState extends State<HistoryPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => setState(() => getVideoAmount()),
         child: Icon(Icons.refresh),
-      ),
+      ),  
     );
   }
 }
@@ -47,17 +57,17 @@ class GameNavigationItemState extends State<GameNavigationItem> {
         Fluttertoast.showToast(msg: "Container tapped!");
       },
       child: ElevatedButton(
-          child: Text('Game ${widget.index}'),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (context) => StatisticsPage(index: widget.index),
-              ),
-            );
-          },
-        ),
-  );
+        child: Text('Game ${widget.index + 1}'),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (context) => StatisticsPage(index: widget.index),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -94,7 +104,9 @@ class StatisticsPageState extends State<StatisticsPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Game Stats')),
+      appBar: AppBar(
+        title: Text('Game ${widget.index + 1} Stats'),
+      ),
       body: Column(
         children: [
           Container(
