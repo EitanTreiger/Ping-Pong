@@ -84,26 +84,26 @@ class VideoRecorderScreenState extends State<VideoRecorderScreen> {
 
     var x = details.localPosition.dx;
     var y = details.localPosition.dy;
-    print("Tap down $x, $y.");
+    //print("Tap down $x, $y.");
 
     if (coordlist.length < 4) {
 
       coordlist.add([x, y]);
-      addStackElt(x, y);
+      addPoint(x, y);
     }
 
-    print(coordlist);
+    //print(coordlist);
 
     editing = false;
     return;
   }
 
-  void addStackElt(double x , double y) {
+  void addPoint(double x , double y) {
     setState(() {
       _stackChildren.add(
         Positioned(
-          left: x, // X-coordinate
-          top: y, // Y-coordinate
+          left: x,
+          top: y,
           child: Container(
             width: 10,
             height: 10,
@@ -138,20 +138,6 @@ class VideoRecorderScreenState extends State<VideoRecorderScreen> {
                 children: <Widget>[
                   CameraPreview(_controller!),
                   ..._stackChildren,
-                  /*
-                  Positioned(
-                    left: 10, // X-coordinate
-                    top: 10, // Y-coordinate
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  */
                 ],
               ),
             ),
@@ -208,55 +194,3 @@ class VideoRecorderScreenState extends State<VideoRecorderScreen> {
     );
   }
 }
-
-/*
-class PointCamStack extends StatefulWidget {
-  final CameraPreview camprev;
-
-  const PointCamStack({super.key, required this.camprev});
-
-  @override
-  PointCamStackState createState() => PointCamStackState();
-}
-*/
-
-/*
-class PointCamStackState extends State<PointCamStack> {
-  List<Widget> _stackChildren = [];
-
-  void addStackElt(double x , double y) {
-    setState(() {
-      _stackChildren.add(
-        Positioned(
-          left: x, // X-coordinate
-          top: y, // Y-coordinate
-          child: Container(
-            width: 10,
-            height: 10,
-            decoration: const BoxDecoration(
-              color: Colors.black,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-      );
-    });
-  }
-
-  void removePoints() {
-    setState(() {
-      _stackChildren = [];
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        widget.camprev,
-        ..._stackChildren,
-      ],
-    );
-  }
-}
-*/
