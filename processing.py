@@ -25,6 +25,7 @@ def process(video_dir, table_points):
     
     cap = cv2.VideoCapture(video_dir)
     ret, frame = cap.read()
+    print(frame.shape)
     tracker = Tracker(2000, image_size=frame.shape)
     table_points = corner_points_to_dict(table_points)
     tracker.set_table_points(table_points)

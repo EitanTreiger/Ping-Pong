@@ -228,7 +228,7 @@ class Tracker:
         if score > self.confidence_threshold:
             size = detection[1][0]
             position = detection[0]
-            self.recorded_positions2d.append((position[0], self.image_size[1] - position[1]))
+            self.recorded_positions2d.append((position[0], self.image_size[0] - position[1]))
             self.frame_numbers.append(self.frame_index)
             self.recorded_sizes.append(size)
             self.recorded_distances.append(self.calc_distance(size))
