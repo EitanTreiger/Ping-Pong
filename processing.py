@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 from ball_tracking import Tracker
 import cv2
+import json
 
 class Event:
     def __init__(self, type, pos):
@@ -47,17 +48,25 @@ def process(video_dir, table_points):
     table_positions_x = [pos[0] for pos in tracker.recorded_table_positions]
     table_positions_y = [pos[1] for pos in tracker.recorded_table_positions]
     
-    hit_events = [{"frame_number" : index, "type" : "hit", "pos" : (table_positions_x[index], table_positions_y[index])} for index in events["hit_indices"]]
-    net_events = [{"frame_number" : index, "type" : "net", "pos" : (table_positions_x[index], table_positions_y[index])} for index in events["net_indices"]]
-    bounce_events = [{"frame_number" : index, "type" : "bounce", "pos" : (table_positions_x[index], table_positions_y[index])} for index in events["bounce_indices"]]
+    hit_events = [{"frame_number" : int(index), "type" : "hit", "pos" : (int(table_positions_x[index]), int(table_positions_y[index]))} for index in events["hit_indices"]]
+    net_events = [{"frame_number" : int(index), "type" : "net", "pos" : (int(table_positions_x[index]), int(table_positions_y[index]))} for index in events["net_indices"]]
+    bounce_events = [{"frame_number" : int(index), "type" : "bounce", "pos" : (int(table_positions_x[index]), int(table_positions_y[index])), "velocities" : velocity} for index, velocity in zip(events["bounce_indices"], events['velocities'])]
     
     event_points = (hit_events + net_events + bounce_events)
     event_points.sort(key=lambda x: x["frame_number"])
     
     print()
-    for event_set in (hit_events, net_events, bounce_events):
-        print(event_set)
-    print("\n", event_points)
+    for event in event_points:
+        print(event)
+    # print("\n", event_points)
+    
+    for position_table, position_screen in zip(tracker.recorded_table_positions, tracker.recorded_positions2d):
+        print(f"{position_screen[0] :.2f}, {position_screen[1] :.2f} -> {position_table[0] :.2f}")
+    
+    print("\n", tracker.H, end='\n\n')
+    
+    with open("dummy_data.json", "w") as json_file:
+            json.dump(event_points, json_file)
     
 if __name__ == "__main__":
-    process("downstairs1.mp4", table_points=[[5.5357483e+02, 7.1888324e+02], [2.2216523e+03, 7.6765741e+02], [2.7503645e+03, 1.1617529e+03], [1.4509678e+00, 1.0973710e+03]])
+    process("downstairs1.mp4", table_points=[[340, 450], [1400, 470], [0, 700], [1750, 750]])

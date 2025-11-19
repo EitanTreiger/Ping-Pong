@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import math
 from geometry_utils import trilaterate_2d_4points, multilateration_4pts, get_homography, get_ground_point_full
 from bounce_detection import find_robust_peaks
+from scipy.ndimage import median_filter
 
 
 FEET_PER_METER = 3.28084
@@ -380,27 +381,33 @@ class Tracker:
         return self.corner_distances
     
     def is_net_hit(self, x_pos):
-        if abs(x_pos - 1369.5) < 300:
+        table_x, table_y = self.calc_table_position((x_pos, 500))
+        if abs(table_x - 1369.5) < 100:
             return True
     
     def detect_events(self):
-        positions_x = [pos[0] for pos in self.recorded_positions2d]
-        positions_y = [pos[1] for pos in self.recorded_positions2d]
+        positions_x = np.array([pos[0] for pos in self.recorded_positions2d])
+        positions_y = np.array([pos[1] for pos in self.recorded_positions2d])
+        positions_x = median_filter(positions_x, size=6)
+        positions_y = median_filter(positions_y, size=6)
         
-        hit_indices, x_smoothed, hit_properties = find_robust_peaks(positions_x, smooth_window_size=7, prominence=30, distance=10, peak_type='both')
-        hit_indices = hit_indices['minima'] + hit_indices['maxima']
+        hit_indices, x_smoothed, hit_properties = find_robust_peaks(positions_x, smooth_window_size=7, prominence=30, distance=5, peak_type='both')
+        hit_indices = list(hit_indices['minima']) + list(hit_indices['maxima'])
         
-        bounce_indices, y_smoothed, bounce_properties = find_robust_peaks(positions_y, smooth_window_size=7, prominence=20, distance=10, peak_type='min')
+        bounce_indices, y_smoothed, bounce_properties = find_robust_peaks(positions_y, smooth_window_size=5, prominence=10, distance=5, peak_type='min')
         
-        bounce_indices = [b_index for b_index in bounce_indices if min([b_index - h_index for h_index in hit_indices]) > 10]
-        is_net = [self.is_net_hit(positions_x[index]) for index in hit_indices]
+        bounce_indices = [b_index for b_index in bounce_indices if min([abs(b_index - h_index) for h_index in hit_indices]) > 5]
+        is_net = [self.is_net_hit(x_smoothed[index]) for index in hit_indices]
         net_indices = [index for i, index in enumerate(hit_indices) if is_net[i]]
         hit_indices = [index for i, index in enumerate(hit_indices) if not is_net[i]]
+        event_data = {"hit_indices" : hit_indices, "bounce_indices" : bounce_indices, "net_indices" : net_indices}
         
-        return {"hit_indices" : hit_indices, "bounce_indices" : bounce_indices, "net_indices" : net_indices}
+        event_data['velocities'] = self.calc_velo(event_data)
+        return event_data
 
 
-    def calc_velo(self, dictionary_of_events, hit_indices):
+    def calc_velo(self, dictionary_of_events):
+        hit_indices = dictionary_of_events['hit_indices']
         positions_x = [pos[0] for pos in self.recorded_positions2d][::-1]
         positions_y = [pos[1] for pos in self.recorded_positions2d][::-1]
         hit_indices = hit_indices[::-1]
@@ -439,5 +446,6 @@ class Tracker:
                         break
 
         velocities = velocities[::-1]
+        return velocities
 
 
