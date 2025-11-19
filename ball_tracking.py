@@ -398,3 +398,46 @@ class Tracker:
         hit_indices = [index for i, index in enumerate(hit_indices) if not is_net[i]]
         
         return {"hit_indices" : hit_indices, "bounce_indices" : bounce_indices, "net_indices" : net_indices}
+
+
+    def calc_velo(self, dictionary_of_events, hit_indices):
+        positions_x = [pos[0] for pos in self.recorded_positions2d][::-1]
+        positions_y = [pos[1] for pos in self.recorded_positions2d][::-1]
+        hit_indices = hit_indices[::-1]
+
+        frame_numbers_rev = self.frame_numbers[::-1]
+
+        framerate = 60
+
+        net_x = 1369.5
+
+        bounces = dictionary_of_events["bounce_indices"][::-1]
+
+        velocities = []
+
+        for i in bounces:
+            bounce_x = positions_x[i]
+            bounce_y = positions_y[i]
+            frame_at_bounce = frame_numbers_rev[i]
+
+            for j in range(i+1, len(positions_y)):
+                if j not in hit_indices:
+
+                    if (positions_x[j] >= 1369.5 and positions_x[j-1] <= 1369.5) or (positions_x[j] <= 1369.5 and positions_x[j-1] >= 1369.5):
+
+                        frame_at_net = frame_numbers_rev[j]+0.5
+
+                        net_y = (positions_y[j]+positions_y[j-1])/2
+
+
+                        velocity = (((bounce_x-net_x)**2 + (bounce_y-net_y)**2)**0.5)/(abs(frame_at_bounce-frame_at_net))*framerate
+                        velocities.append(velocity)
+                        break
+
+                    else:
+                        velocities.append(None)
+                        break
+
+        velocities = velocities[::-1]
+
+
