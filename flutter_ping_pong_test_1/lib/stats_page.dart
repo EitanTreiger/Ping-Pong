@@ -100,6 +100,7 @@ class StatisticsPageState extends State<StatisticsPage> with SingleTickerProvide
   String jsonstr = "";
   late final List decodedJson;
   bool _isControllerInit = false;
+  bool _isPlaying = false;
 
   @override
   void initState() {
@@ -117,8 +118,16 @@ class StatisticsPageState extends State<StatisticsPage> with SingleTickerProvide
     _controller = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: ((endFrame - startFrame) * 1000).round()),
-    )..repeat(reverse: false);
+    );
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
+
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _isPlaying = false;
+        });
+      }
+    });
 
     print("Duration: ${(endFrame * 1000).round()} ms");
     setState(() {
@@ -135,6 +144,28 @@ class StatisticsPageState extends State<StatisticsPage> with SingleTickerProvide
     super.dispose();
   }
 
+  void _resetAnimation() {
+    _controller.stop();
+    _controller.reset();
+    setState(() {
+      _isPlaying = false;
+    });
+  }
+
+  void _toggleAnimation() {
+    if (_isPlaying) {
+      _controller.stop();
+    } else {
+      if (_controller.status == AnimationStatus.completed) {
+        _controller.reset();
+      }
+      _controller.forward();
+    }
+    setState(() {
+      _isPlaying = !_isPlaying;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isControllerInit || _controller == null) {
@@ -143,9 +174,27 @@ class StatisticsPageState extends State<StatisticsPage> with SingleTickerProvide
     return Scaffold(
       appBar: AppBar(
         title: Text('Game ${widget.index + 1} Stats'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _resetAnimation,
+          ),
+          IconButton(
+            icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+            onPressed: _toggleAnimation,
+          ),
+        ],
       ),
       body: Column(
         children: [
+          Text(
+            'Game Overview',
+            style: TextStyle(
+              fontSize: 20.0,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          /*
           Container(
             padding: EdgeInsets.all(20.0),
             child: Table(
@@ -169,14 +218,16 @@ class StatisticsPageState extends State<StatisticsPage> with SingleTickerProvide
               ],
             ),
           ),
+          */
+          //Header
           Expanded(
             child: AnimatedBuilder(
               animation: _animation,
               builder: (context, child) {
                 return CustomPaint(
-                  painter: BallAnimPainter(_animation.value, decodedJson, 
-                    decodedJson.map((bounceData) => (bounceData["frame_number"] as int)).toList(), 
-                    decodedJson[decodedJson.length - 1]["frame_number"], 
+                  painter: BallAnimPainter(_animation.value, decodedJson,
+                    decodedJson.map((bounceData) => (bounceData["frame_number"] as int)).toList(),
+                    decodedJson[decodedJson.length - 1]["frame_number"],
                     decodedJson[0]["frame_number"]),
                   child: Container(),
                 );
@@ -274,7 +325,8 @@ List<int> findBallXY(double timestamp, decodedJson, bounceFrames) {
   }
 
   if (afterFrame == 0) {
-    return [10, 10];
+    Map<String, dynamic> frameMap = decodedJson[0];
+    return frameMap["pos"];
   }
 
   int prevFrame = afterFrame - 1;
