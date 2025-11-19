@@ -4,11 +4,12 @@ import 'package:flutter_ping_pong_test_1/record_module.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:camera/camera.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+
 import 'data_storage.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
+//import 'package:http/http.dart' as http;
+//import 'dart:convert';
+//import 'package:flutter/services.dart';
+//import 'package:share_plus/share_plus.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -30,14 +31,59 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
+    HomePage(),
+    //HomePage(),
     //GyroscopeExample(),
-    TestAPIPage(),
-    //const HomePage(),
+    //TestAPIPage(),
     VideoRecorderScreen(),
     //TakePictureScreen(camera: cameras.first),
     HistoryPage(),
   ];
 
+  @override
+  Widget build(BuildContext context) {
+     return OrientationBuilder(
+      builder: (context, orientation) {
+        // Check the current orientation
+        final bool isPortrait = orientation == Orientation.portrait;
+        
+        return Scaffold(
+          appBar: isPortrait ? AppBar(
+            title: const Text('Ping Pong Pros'),
+          ) : null,
+          body: IndexedStack(
+            index: _currentIndex,
+            children: _pages,
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              setState(() {
+                if (index == 1) {
+                  requestCameraPermission();
+                }
+                _currentIndex = index;
+              });
+            },
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.table_restaurant),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.camera),
+                label: 'Record',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.history),
+                label: 'Game History',
+              ),
+            ],
+          ),
+        );
+      });
+  }
+  /*
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,7 +106,7 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Icon(Icons.table_restaurant),
             label: 'Home',
           ),
           BottomNavigationBarItem(
@@ -75,8 +121,10 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
       ),
     );
   }
+  */
 }
 
+/*
 class TestAPIPage extends StatefulWidget {
   @override
   _TestAPIState createState() => _TestAPIState();
@@ -156,6 +204,7 @@ class _TestAPIState extends State<TestAPIPage> {
     );
   }
 }
+*/
 
 /*
 class GyroscopeExample extends StatefulWidget {
@@ -186,6 +235,16 @@ class _GyroscopeExampleState extends State<GyroscopeExample> {
 }
 */
 
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text('Home Page Content'));
+  }
+}
+
+/*
 class CameraPage extends StatefulWidget {
   const CameraPage({super.key});
 
@@ -237,6 +296,7 @@ class ProfilePage extends StatelessWidget {
     return const Center(child: Text('Profile Page Content'));
   }
 }
+*/
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
