@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import math
 from geometry_utils import trilaterate_2d_4points, multilateration_4pts, get_homography, get_ground_point_full
 from bounce_detection import find_robust_peaks
-from scipy.ndimage import median_filter
+from scipy.ndimage import median_filter, rotate
 
 
 FEET_PER_METER = 3.28084
@@ -34,6 +34,8 @@ class Tracker:
         self.confidence_threshold = confidence_threshold
         self.focal_length_px = focal_length_px
         self.table_points = table_points #Now a dictionary
+        if not self.table_points is None:
+            self.H = get_homography(self.dictionary_to_arranged_list(self.table_points))
         self.image_size = image_size
         self.prev_frame = None
         self.true_ball_diameter = 0.04 # this is in meters
@@ -46,6 +48,8 @@ class Tracker:
         self.recorded_positions = []
         self.recorded_positions2d = []
         self.recorded_table_positions = []
+        self.recorded_detections = []
+        self.last_processed_frame = None
         
     def set_distances(self):
         self.distances_to_cam = self.calc_corner_distances() # or whatever it needs to be... from a function maybe
@@ -63,17 +67,6 @@ class Tracker:
         
     def calc_table_position(self, screen_position):
         return self.transform_point(self.H, screen_position[0], screen_position[1])
-        
-    def reset_tracking(self):
-        self.prev_frame = None
-        self.frame_index = 0
-        self.recorded_sizes = []
-        self.recorded_distances = []
-        self.frame_numbers = []
-        self.recorded_angles = []
-        self.recorded_positions = []
-        self.recorded_positions2d = []
-        self.recorded_table_positions = []
         
     def corner_calibration(self, no_ball, front_ball, back_ball):
         tracker = Tracker(self.focal_length_px, self.image_size, None)
@@ -129,7 +122,6 @@ class Tracker:
                 best_ellipse = ellipse
 
         if not write_image is None:
-            print("write image is", write_image)
             result = write_image
 
             if best_ellipse is not None:
@@ -226,18 +218,20 @@ class Tracker:
         detection, score = self.detect_best_ellipse(threshold_arr)
         
         if score > self.confidence_threshold:
-            size = detection[1][0]
+            self.recorded_detections.append(detection)
+            size = self.count_pixels(threshold_arr, detection)
             position = detection[0]
             self.recorded_positions2d.append((position[0], self.image_size[0] - position[1]))
             self.frame_numbers.append(self.frame_index)
             self.recorded_sizes.append(size)
             self.recorded_distances.append(self.calc_distance(size))
             self.recorded_angles.append(self.calc_angle(position))
-            self.recorded_table_positions.append(self.calc_table_position(position))
+            if not self.table_points is None:
+                self.recorded_table_positions.append(self.calc_table_position(position))
             if calc_position:
                 # self.recorded_positions.append(self.calc_position(self.recorded_angles[-1][0], self.recorded_angles[-1][1], self.recorded_distances[-1]))
                 self.recorded_positions.append(self.calc_position(self.recorded_distances[-1], position))
-            
+            self.last_processed_frame = threshold_arr
             
         self.prev_frame = frame
         self.frame_index += 1
@@ -248,6 +242,20 @@ class Tracker:
         '''returns distance to ball in feet'''
         distance_m = self.focal_length_px * 0.04 / observed_size
         return distance_m * FEET_PER_METER
+    
+    def crop_to_ellipse(self, image, ellipse, padding=2):
+        center = (int(ellipse[0][1]), int(ellipse[0][0]))  # flip axes to align with indexing
+        maj_ax = int(ellipse[1][1]) + padding
+        cropped = image[center[0] - maj_ax // 2 : center[0] + maj_ax // 2, center[1] - maj_ax // 2 : center[1] + maj_ax // 2]
+        rotated = rotate(cropped, ellipse[2])
+        return rotated
+    
+    def count_pixels(self, image, ellipse):
+        cropped_image = self.crop_to_ellipse(image, ellipse)
+        normalized = cropped_image / np.max(cropped_image)
+        density = np.sum(normalized, axis=0)
+        num_pixels = np.sum(density > 1)
+        return num_pixels
     
     def calc_position_2d(self, ball_location):
         table_corners_to_ball = []
@@ -293,7 +301,7 @@ class Tracker:
         pt = np.array([x, y, 1.0])
         p2 = H @ pt
         pts = (p2[0] / p2[2], p2[1] / p2[2])
-        print("(", pts[0], ",", pts[1], ")")
+        # print("(", pts[0], ",", pts[1], ")")
         return pts
 
     def line_through_2points_3d(self, P1, P2):
@@ -349,7 +357,7 @@ class Tracker:
         return x, y, z
     
     def calc_position(self, ball_distance_to_camera, ball_pos_pxl):
-
+        
         # ball homography applied
         bxy = self.transform_point(self.H, ball_pos_pxl[0], ball_pos_pxl[1])
         ball_xy = np.array([bxy[0], bxy[1]])
@@ -391,21 +399,28 @@ class Tracker:
         positions_x = np.array([pos[0] for pos in self.recorded_positions2d])
         positions_y = np.array([pos[1] for pos in self.recorded_positions2d])
         positions_x = median_filter(positions_x, size=6)
-        positions_y = median_filter(positions_y, size=6)
+        positions_y = median_filter(positions_y, size=4)
         
         hit_indices, x_smoothed, hit_properties = find_robust_peaks(positions_x, smooth_window_size=7, prominence=30, distance=5, peak_type='both')
         hit_indices = list(hit_indices['minima']) + list(hit_indices['maxima'])
         
-        bounce_indices, y_smoothed, bounce_properties = find_robust_peaks(positions_y, smooth_window_size=5, prominence=10, distance=5, peak_type='min')
-        
-        bounce_indices = [b_index for b_index in bounce_indices if min([abs(b_index - h_index) for h_index in hit_indices]) > 5]
+        bounce_indices, y_smoothed, bounce_properties = find_robust_peaks(positions_y, smooth_window_size=5, prominence=5, distance=5, peak_type='min')
+        bounce_indices = [b_index for b_index in bounce_indices if  min([abs(b_index - h_index) for h_index in hit_indices]) > 5] if len(hit_indices) > 0 else bounce_indices
         is_net = [self.is_net_hit(x_smoothed[index]) for index in hit_indices]
         net_indices = [index for i, index in enumerate(hit_indices) if is_net[i]]
         hit_indices = [index for i, index in enumerate(hit_indices) if not is_net[i]]
         event_data = {"hit_indices" : hit_indices, "bounce_indices" : bounce_indices, "net_indices" : net_indices}
-        
+                
         event_data['velocities'] = self.calc_velo(event_data)
+        # self.calc_velo_simple(event_data)
         return event_data
+
+    def calc_velo_simple(self, events):
+        for bounce_index in events['bounce_indices']:
+            prev_positions = [int(pos[0]) for pos in self.recorded_positions2d[bounce_index-6:bounce_index]]
+            # print("bounce:", self.recorded_positions2d[bounce_index], prev_positions)
+            # print("frames:", self.frame_numbers[bounce_index], self.frame_numbers[bounce_index-6:bounce_index])
+            
 
     def calc_velo(self, dictionary_of_events):
         hit_indices = dictionary_of_events['hit_indices']
@@ -423,9 +438,9 @@ class Tracker:
 
         velocities = []
 
-        print(hit_indices)
-        print(positions_x)
-        print(positions_y)
+        # print(hit_indices)
+        # print(positions_x)
+        # print(positions_y)
         # print(frame_numbers_rev)
 
         for i in bounces:
@@ -434,14 +449,11 @@ class Tracker:
             frame_at_bounce = frame_numbers_rev[i]
 
             for j in range(i + 1, len(positions_y)):
-                print(i, j, positions_x[j], positions_y[j])
-                if j not in hit_indices:
-                    print("positions", positions_x[j], positions_x[j - 1],
-                          (positions_x[j] >= 1369.5 and positions_x[j - 1] <= 1369.5),
-                          (positions_x[j] <= 1369.5 and positions_x[j - 1] >= 1369.5))
+                # print(i, j, positions_x[j], positions_y[j])
+                # if j not in hit_indices:
                     if ((positions_x[j] >= 1369.5 and positions_x[j - 1] <= 1369.5) or
                             (positions_x[j] <= 1369.5 and positions_x[j - 1] >= 1369.5)):
-                        print("this should be working")
+                        # print("this should be working")
                         frame_at_net = frame_numbers_rev[j] + 0.5
 
                         net_y = (positions_y[j] + positions_y[j - 1]) / 2
@@ -459,7 +471,7 @@ class Tracker:
                         velocities.append(None)
 
         velocities = velocities[::-1]
-        print(velocities)
+        # print(velocities)
         return velocities
 
 
