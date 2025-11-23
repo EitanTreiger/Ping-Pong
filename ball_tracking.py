@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 import math
 from geometry_utils import trilaterate_2d_4points, multilateration_4pts, get_homography, get_ground_point_full
 from bounce_detection import find_robust_peaks
-from scipy.ndimage import median_filter, rotate
-
+from scipy.ndimage import median_filter, rotate, uniform_filter
+from sktime.transformations.series.outlier_detection import HampelFilter
 
 FEET_PER_METER = 3.28084
 MM_PER_FT = 304.8
@@ -30,7 +30,7 @@ def smooth_by_distance(frame_numbers, readings, sigma=5):
     return full_frames, smoothed
 
 class Tracker:
-    def __init__(self, focal_length_px, image_size, table_points=None, confidence_threshold=0.8):
+    def __init__(self, focal_length_px, image_size, table_points=None, confidence_threshold=0.7):
         self.confidence_threshold = confidence_threshold
         self.focal_length_px = focal_length_px
         self.table_points = table_points #Now a dictionary
@@ -218,20 +218,21 @@ class Tracker:
         detection, score = self.detect_best_ellipse(threshold_arr)
         
         if score > self.confidence_threshold:
-            self.recorded_detections.append(detection)
-            size = self.count_pixels(threshold_arr, detection)
-            position = detection[0]
-            self.recorded_positions2d.append((position[0], self.image_size[0] - position[1]))
-            self.frame_numbers.append(self.frame_index)
-            self.recorded_sizes.append(size)
-            self.recorded_distances.append(self.calc_distance(size))
-            self.recorded_angles.append(self.calc_angle(position))
-            if not self.table_points is None:
-                self.recorded_table_positions.append(self.calc_table_position(position))
-            if calc_position:
-                # self.recorded_positions.append(self.calc_position(self.recorded_angles[-1][0], self.recorded_angles[-1][1], self.recorded_distances[-1]))
-                self.recorded_positions.append(self.calc_position(self.recorded_distances[-1], position))
-            self.last_processed_frame = threshold_arr
+            size = self.count_pixels(threshold_arr, detection)  # filter out unreasonable size values
+            if size > 4 and size < 100:
+                self.recorded_detections.append(detection)
+                position = detection[0]
+                self.recorded_positions2d.append((position[0], self.image_size[0] - position[1]))
+                self.frame_numbers.append(self.frame_index)
+                self.recorded_sizes.append(size)
+                self.recorded_distances.append(self.calc_distance(size))
+                self.recorded_angles.append(self.calc_angle(position))
+                if not self.table_points is None:
+                    self.recorded_table_positions.append(self.calc_table_position(position))
+                if calc_position:
+                    self.recorded_positions.append(self.calc_position(self.recorded_angles[-1][0], self.recorded_angles[-1][1], self.recorded_distances[-1]))
+                    # self.recorded_positions.append(self.calc_position(self.recorded_distances[-1], position))
+                self.last_processed_frame = threshold_arr
             
         self.prev_frame = frame
         self.frame_index += 1
@@ -242,6 +243,13 @@ class Tracker:
         '''returns distance to ball in feet'''
         distance_m = self.focal_length_px * 0.04 / observed_size
         return distance_m * FEET_PER_METER
+    
+    def smooth_sizes(self, sizes):  # doesn't account for time difference between values
+        sizes = np.array(sizes)
+        # sizes = HampelFilter(window_length=5).fit_transform(sizes)
+        # sizes = median_filter(sizes, size=6)
+        # sizes = uniform_filter(sizes, size=6)
+        return sizes
     
     def crop_to_ellipse(self, image, ellipse, padding=2):
         center = (int(ellipse[0][1]), int(ellipse[0][0]))  # flip axes to align with indexing
@@ -254,7 +262,7 @@ class Tracker:
         cropped_image = self.crop_to_ellipse(image, ellipse)
         normalized = cropped_image / np.max(cropped_image)
         density = np.sum(normalized, axis=0)
-        num_pixels = np.sum(density > 1)
+        num_pixels = np.sum(density > 1) # > 1 may need to be tuned
         return num_pixels
     
     def calc_position_2d(self, ball_location):
@@ -356,32 +364,59 @@ class Tracker:
     
         return x, y, z
     
-    def calc_position(self, ball_distance_to_camera, ball_pos_pxl):
+    def ball_position_3d(self, pos, distance, principal_point=None, R=None, t=None):
+        pos_x = pos[0]
+        pos_y = pos[1]  # hopefully this assumption is correct
+        if principal_point is None and self.image_size[1] is not None and self.image_size[0] is not None:
+            principal_point = np.array([self.image_size[1] / 2.0, self.image_size[0] / 2.0])
+        elif principal_point is None:
+            principal_point = np.array([0.0, 0.0])
+
+        if R is None:
+            R = np.eye(3)
+        if t is None:
+            t = np.zeros(3)
+
+        K = np.array([
+            [self.focal_length_px, 0, principal_point[0]],
+            [0, self.focal_length_px, principal_point[1]],
+            [0, 0, 1]
+        ])
+
+        pixel = np.array([pos_x, pos_y, 1.0])
+        cam_ray = np.linalg.inv(K) @ pixel
+        ray_dir = cam_ray / np.linalg.norm(cam_ray)
+        cam_point = distance * ray_dir
+        table_point = R.T @ (cam_point - t)
+        return table_point
+    
+    # def calc_position(self, ball_distance_to_camera, ball_pos_pxl):
         
-        # ball homography applied
-        bxy = self.transform_point(self.H, ball_pos_pxl[0], ball_pos_pxl[1])
-        ball_xy = np.array([bxy[0], bxy[1]])
+    #     # ball homography applied
+    #     bxy = self.transform_point(self.H, ball_pos_pxl[0], ball_pos_pxl[1])
+    #     ball_xy = np.array([bxy[0], bxy[1]])
 
-        # distance of points to ball in mm
-        corners_to_ball_distances = []
+    #     # distance of points to ball in mm
+    #     corners_to_ball_distances = []
 
-        # getting points location and distances using homograhpy
-        for i in self.corner_locations_mm_2d:
-            dist_px = np.linalg.norm(ball_xy - i)
-            corners_to_ball_distances.append(dist_px)
+    #     # getting points location and distances using homograhpy
+    #     for i in self.corner_locations_mm_2d:
+    #         dist_px = np.linalg.norm(ball_xy - i)
+    #         corners_to_ball_distances.append(dist_px)
 
-        # ball position calculated and then turned into 3d with height 0 due to homography shift
-        ball_pos_2d = trilaterate_2d_4points(self.corner_locations_mm_2d, corners_to_ball_distances)
-        ball_pos = np.array([ball_pos_2d[0], ball_pos_2d[1], 0.0])
+    #     # ball position calculated and then turned into 3d with height 0 due to homography shift
+    #     ball_pos_2d = trilaterate_2d_4points(self.corner_locations_mm_2d, corners_to_ball_distances)
+    #     ball_pos = np.array([ball_pos_2d[0], ball_pos_2d[1], 0.0])
 
-        # line from the camera to the homography ball position
-        line = self.line_through_2points_3d(self.camera_pos, ball_pos)
+    #     # line from the camera to the homography ball position
+    #     line = self.line_through_2points_3d(self.camera_pos, ball_pos)
 
-        # returns the real 3d position of the ball in mm relative to top left corner (as of editing)
-        return self.point_along_line_at_distance(line, self.camera_pos, ball_distance_to_camera)
+    #     # returns the real 3d position of the ball in mm relative to top left corner (as of editing)
+    #     return self.point_along_line_at_distance(line, self.camera_pos, ball_distance_to_camera)
         
     def smooth_values(self, sigma=10):
-        full_frames, smooth_sizes = smooth_by_distance(self.frame_numbers, self.recorded_sizes, sigma=sigma)
+        # median_sizes = median_filter(self.recorded_sizes, size=4)
+        full_frames, smooth_sizes = smooth_by_distance(self.frame_numbers, median_sizes, sigma=sigma)
         _, smooth_distances = smooth_by_distance(self.frame_numbers, self.recorded_distances, sigma=sigma)
         return full_frames, smooth_sizes, smooth_distances
 
