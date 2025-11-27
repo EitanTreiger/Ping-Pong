@@ -8,10 +8,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 
 import 'data_storage.dart';
-//import 'package:http/http.dart' as http;
-//import 'dart:convert';
-//import 'package:flutter/services.dart';
-//import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -38,7 +35,8 @@ class _MyBottomNavBarScreenState extends State<MyBottomNavBarScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
-    HomePage(),
+    TestCPage(),
+    //HomePage(),
     VideoRecorderScreen(),
     HistoryPage(),
   ];
@@ -144,9 +142,10 @@ class MyApp extends StatelessWidget {
 Future<void> requestCameraPermission() async {
   var status = await Permission.camera.status;
 
-  if (status.isGranted) {
+  /*if (status.isGranted) {
     //Fluttertoast.showToast(msg: 'Already permission granted');
-  } else if (status.isDenied) {
+  } else */
+  if (status.isDenied) {
     var result = await Permission.camera.request();
 
     if (result.isGranted) {
@@ -157,5 +156,52 @@ Future<void> requestCameraPermission() async {
   } else if (status.isPermanentlyDenied) {
     Fluttertoast.showToast(msg: 'Camera Permission Denied');
     openAppSettings();
+  }
+}
+
+
+class TestCPage extends StatefulWidget {
+  const TestCPage({super.key});
+
+  @override
+  TestCState createState() => TestCState();
+}
+
+class TestCState extends State<TestCPage> {
+  String teststr = "Test";
+  static const platform = MethodChannel('ccode_channel');
+
+  
+  Future<void> _callCCode() async {
+    try {
+      final int started = await platform.invokeMethod('addNumbers', {
+          'a': 20,
+          'b': 50, 
+        });
+      print(started);
+    } on PlatformException catch (e) {
+      setState(() {
+        print("Failed to add numbers: '${e.message}'.");
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("Arbitrary C Code Test"),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _callCCode,
+              child: const Text('Call C Code'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

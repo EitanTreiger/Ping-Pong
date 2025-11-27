@@ -13,12 +13,14 @@
 		4AA9E3ADECA1F8640D921A0F /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 124372834DF6130227CB26B8 /* Pods_RunnerTests.framework */; };
 		62A90D2B85827568372055CF /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F85472DE14CAE7BFF1BDDDF1 /* Pods_Runner.framework */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
+		8F43FB232ED7D729006E3C71 /* MyCFunctions.c in Sources */ = {isa = PBXBuildFile; fileRef = 8F43FB222ED7D729006E3C71 /* MyCFunctions.c */; };
+		8F43FB242ED7D729006E3C71 /* MyCFunctions.c in Sources */ = {isa = PBXBuildFile; fileRef = 8F43FB222ED7D729006E3C71 /* MyCFunctions.c */; };
 		8F57E4392ECE322B00DCD83E /* ComposedIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8F57E4382ECE322B00DCD83E /* ComposedIcon.icon */; };
 		8F57E43A2ECE322B00DCD83E /* ComposedIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8F57E4382ECE322B00DCD83E /* ComposedIcon.icon */; };
 		8F57E43C2ECE868400DCD83E /* ComposedIcon2.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8F57E43B2ECE868400DCD83E /* ComposedIcon2.icon */; };
 		8F57E43D2ECE868400DCD83E /* ComposedIcon2.icon in Resources */ = {isa = PBXBuildFile; fileRef = 8F57E43B2ECE868400DCD83E /* ComposedIcon2.icon */; };
-		8F8152E32ECBFF5600B4A7C6 /* LidarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F8152E22ECBFF5600B4A7C6 /* LidarController.swift */; };
-		8F8152E42ECBFF5600B4A7C6 /* LidarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F8152E22ECBFF5600B4A7C6 /* LidarController.swift */; };
+		8F8152E32ECBFF5600B4A7C6 /* CBridgeInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F8152E22ECBFF5600B4A7C6 /* CBridgeInterface.swift */; };
+		8F8152E42ECBFF5600B4A7C6 /* CBridgeInterface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F8152E22ECBFF5600B4A7C6 /* CBridgeInterface.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
@@ -60,9 +62,12 @@
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		790E06F47C97FED9EEA2EA0D /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		8F43FB202ED7D704006E3C71 /* RunnerTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RunnerTests-Bridging-Header.h"; sourceTree = "<group>"; };
+		8F43FB212ED7D729006E3C71 /* MyCFunctions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MyCFunctions.h; sourceTree = "<group>"; };
+		8F43FB222ED7D729006E3C71 /* MyCFunctions.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = MyCFunctions.c; sourceTree = "<group>"; };
 		8F57E4382ECE322B00DCD83E /* ComposedIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = ComposedIcon.icon; sourceTree = "<group>"; };
 		8F57E43B2ECE868400DCD83E /* ComposedIcon2.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = ComposedIcon2.icon; sourceTree = "<group>"; };
-		8F8152E22ECBFF5600B4A7C6 /* LidarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LidarController.swift; sourceTree = "<group>"; };
+		8F8152E22ECBFF5600B4A7C6 /* CBridgeInterface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CBridgeInterface.swift; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -154,7 +159,7 @@
 			children = (
 				8F57E43B2ECE868400DCD83E /* ComposedIcon2.icon */,
 				8F57E4382ECE322B00DCD83E /* ComposedIcon.icon */,
-				8F8152E22ECBFF5600B4A7C6 /* LidarController.swift */,
+				8F8152E22ECBFF5600B4A7C6 /* CBridgeInterface.swift */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
 				97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */,
@@ -163,6 +168,9 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				8F43FB202ED7D704006E3C71 /* RunnerTests-Bridging-Header.h */,
+				8F43FB212ED7D729006E3C71 /* MyCFunctions.h */,
+				8F43FB222ED7D729006E3C71 /* MyCFunctions.c */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -233,6 +241,7 @@
 				TargetAttributes = {
 					331C8080294A63A400263BE5 = {
 						CreatedOnToolsVersion = 14.0;
+						LastSwiftMigration = 2600;
 						TestTargetID = 97C146ED1CF9000F007C117D;
 					};
 					97C146ED1CF9000F007C117D = {
@@ -402,7 +411,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8F8152E32ECBFF5600B4A7C6 /* LidarController.swift in Sources */,
+				8F8152E32ECBFF5600B4A7C6 /* CBridgeInterface.swift in Sources */,
+				8F43FB242ED7D729006E3C71 /* MyCFunctions.c in Sources */,
 				331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -411,7 +421,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8F8152E42ECBFF5600B4A7C6 /* LidarController.swift in Sources */,
+				8F8152E42ECBFF5600B4A7C6 /* CBridgeInterface.swift in Sources */,
+				8F43FB232ED7D729006E3C71 /* MyCFunctions.c in Sources */,
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);
@@ -527,6 +538,7 @@
 			baseConfigurationReference = B2C6308E4F7BF83938EDD668 /* Pods-RunnerTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -534,6 +546,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.flutterPingPongTest1.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/RunnerTests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -545,12 +558,14 @@
 			baseConfigurationReference = D06381AD45D1FF971FE33452 /* Pods-RunnerTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.flutterPingPongTest1.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/RunnerTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
 			};
@@ -561,12 +576,14 @@
 			baseConfigurationReference = 9B6E844724EC3959A2E57106 /* Pods-RunnerTests.profile.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.flutterPingPongTest1.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/RunnerTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
 			};
