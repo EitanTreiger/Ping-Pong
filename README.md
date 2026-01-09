@@ -21,7 +21,11 @@ _(SwingVision provides similar functionality for tennis, we're building somethin
    <img width="2000" height="1125" alt="image" src="https://github.com/user-attachments/assets/aecdcc84-854a-4e10-adf7-6036a714b1d0" />
 
 5. Filter location proposals
-  <img width="850" height="480" alt="video" src="https://github.com/user-attachments/assets/3992313a-630a-481b-bce5-cc21cd139be9" />
+
+https://github.com/user-attachments/assets/adc37035-8fdf-412e-bcf5-ee2baccb47db
+
+ 
+  
 
 
 ## Distance Calculation
